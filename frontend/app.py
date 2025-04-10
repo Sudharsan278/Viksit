@@ -134,11 +134,29 @@ st.markdown("""
         background-color: #3d8b40;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
+    .chat-message {
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        display: flex;
+        flex-direction: column;
+    }
+    .chat-message.user {
+        background-color: #2d3748;
+        border-left: 4px solid #4299e1;
+    }
+    .chat-message.assistant {
+        background-color: #1e2230;
+        border-left: 4px solid #4CAF50;
+    }
+    .chat-message .message {
+        margin-top: 0.5rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # Constants
-BACKEND_URL = "http://localhost:8000/api/"
+BACKEND_URL = "http://localhost:8080/api/"
 
 def get_repositories(username):
     """Fetch repositories for the given username from the Django backend"""
@@ -235,17 +253,17 @@ def get_file_icon(extension):
         'css': '🎨',
         'md': '📝',
         'json': '📋',
-        'yml': '⚙️',
-        'yaml': '⚙️',
+        'yml': '⚙',
+        'yaml': '⚙',
         'txt': '📄',
         'gitignore': '🔒',
         'sh': '⚡',
         'bat': '⚡',
-        'jpg': '🖼️',
-        'jpeg': '🖼️',
-        'png': '🖼️',
-        'gif': '🖼️',
-        'svg': '🖼️',
+        'jpg': '🖼',
+        'jpeg': '🖼',
+        'png': '🖼',
+        'gif': '🖼',
+        'svg': '🖼',
         'pdf': '📕',
         'doc': '📘',
         'docx': '📘',
@@ -275,18 +293,27 @@ def main_page():
                 selected_repo = st.selectbox("Select Repository", repo_names, help="Choose a repository to explore")
                 
                 if selected_repo:
-                    if st.button("Explore Repository Structure", help="View the repository's file structure"):
-                        # Reset any previously stored structures
-                        if 'fetched_paths' in st.session_state:
-                            del st.session_state['fetched_paths']
-                        if 'expanded_paths' in st.session_state:
-                            del st.session_state['expanded_paths']
-                            
-                        # Store selection for structure page
-                        st.session_state.username = username
-                        st.session_state.repo_name = selected_repo
-                        st.session_state.page = "repo_structure"
-                        st.rerun()
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("Explore Repository Structure", help="View the repository's file structure"):
+                            # Reset any previously stored structures
+                            if 'fetched_paths' in st.session_state:
+                                del st.session_state['fetched_paths']
+                            if 'expanded_paths' in st.session_state:
+                                del st.session_state['expanded_paths']
+                                
+                            # Store selection for structure page
+                            st.session_state.username = username
+                            st.session_state.repo_name = selected_repo
+                            st.session_state.page = "repo_structure"
+                            st.rerun()
+                    with col2:
+                        if st.button("Ask AI About This Repo", help="Use Groq to analyze this repository"):
+                            # Store selection for Groq page
+                            st.session_state.username = username
+                            st.session_state.repo_name = selected_repo
+                            st.session_state.page = "groq_assistant"
+                            st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
         
         # Adding some information about the application
@@ -296,6 +323,7 @@ def main_page():
             - Browse any public GitHub repository
             - Explore its file structure in an interactive tree view
             - View and download files
+            - Analyze repositories and code using Groq AI
             
             The application uses GitHub's API to fetch repository data in real time.
             """)
@@ -306,10 +334,9 @@ def repo_structure_page():
     repo_name = st.session_state.repo_name
     
     # Back button with icon
-    st.markdown(
-        f'<button class="back-button" onclick="window.history.back()">⬅️ Back to Search</button>',
-        unsafe_allow_html=True
-    )
+    if st.button("⬅ Back to Search", key="back_button"):
+        st.session_state.page = "main"
+        st.rerun()
     
     # Repository header with user and repo info
     st.markdown(
@@ -321,7 +348,7 @@ def repo_structure_page():
     )
     
     # Add tabs for different views
-    tab1, tab2 = st.tabs(["📁 File Structure", "ℹ️ Repository Info"])
+    tab1, tab2 = st.tabs(["📁 File Structure", "ℹ Repository Info"])
     
     with tab1:
         # Initialize repository structure if not already fetched
@@ -359,9 +386,9 @@ def repo_structure_page():
                     st.write(repo_info.get("description", "No description provided"))
                     
                     st.markdown("#### Repository Details")
-                    st.write(f"**Language:** {repo_info.get('language', 'Not specified')}")
-                    st.write(f"**Created:** {repo_info.get('created_at', '').split('T')[0]}")
-                    st.write(f"**Last Updated:** {repo_info.get('updated_at', '').split('T')[0]}")
+                    st.write(f"*Language:* {repo_info.get('language', 'Not specified')}")
+                    st.write(f"*Created:* {repo_info.get('created_at', '').split('T')[0]}")
+                    st.write(f"*Last Updated:* {repo_info.get('updated_at', '').split('T')[0]}")
                     
                     # Add links to GitHub
                     st.markdown("#### Links")
@@ -371,11 +398,208 @@ def repo_structure_page():
                     
                     # Show license info if available
                     if repo_info.get('license') and repo_info['license'].get('name'):
-                        st.write(f"**License:** {repo_info['license'].get('name')}")
+                        st.write(f"*License:* {repo_info['license'].get('name')}")
                 else:
                     st.error("Could not fetch repository information")
             except Exception as e:
                 st.error(f"Error: {str(e)}")
+
+def groq_assistant_page():
+    """Page for Groq AI assistant to analyze repositories and code"""
+    username = st.session_state.username
+    repo_name = st.session_state.repo_name
+    
+    # Back button
+    if st.button("⬅ Back to Search", key="back_from_groq"):
+        st.session_state.page = "main"
+        st.rerun()
+    
+    st.markdown('<h1 style="text-align: center;">Groq Repository Assistant</h1>', unsafe_allow_html=True)
+    
+    # Repository header with user and repo info
+    st.markdown(
+        f'''<div class="repo-header">
+            <h1>{repo_name}</h1>
+            <p>Repository by <a href="https://github.com/{username}" target="_blank">{username}</a></p>
+        </div>''',
+        unsafe_allow_html=True
+    )
+    
+    # Initialize session state variables if not already present
+    if 'groq_history' not in st.session_state:
+        st.session_state.groq_history = []
+    
+    # Query section
+    st.markdown('<div class="search-container">', unsafe_allow_html=True)
+    
+    # Query type selection
+    query_type = st.radio(
+        "Query Type",
+        ["Repository Analysis", "Code File Analysis"],
+        horizontal=True
+    )
+    
+    if query_type == "Repository Analysis":
+        # Repository analysis query
+        query = st.text_area(
+            "Ask about the repository structure, purpose, or potential improvements",
+            height=100,
+            help="Example: 'What is the main purpose of this repository?' or 'How could I improve the structure?'"
+        )
+        
+        if st.button("Submit Repository Query"):
+            if not query.strip():
+                st.warning("Please enter a query before submitting.")
+            else:
+                with st.spinner("Processing your query with Groq..."):
+                    try:
+                        # Send query to backend
+                        response = requests.post(
+                            urljoin(BACKEND_URL, "query-repository/"),
+                            json={
+                                "username": username,
+                                "repo_name": repo_name,
+                                "query": query
+                            }
+                        )
+                        
+                        if response.status_code == 200:
+                            result = response.json()
+                            
+                            # Add to history
+                            st.session_state.groq_history.append({
+                                "query": query,
+                                "response": result["response"],
+                                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+                            })
+                            
+                            # Force a rerun to show the new response
+                            st.rerun()
+                        else:
+                            st.error(f"Error: {response.text}")
+                    except Exception as e:
+                        st.error(f"Error: {str(e)}")
+    
+    else:  # Code File Analysis
+        # Fetch repository structure for file selection
+        try:
+            if 'root_structure' not in st.session_state:
+                with st.spinner("Loading repository structure..."):
+                    response = requests.get(urljoin(BACKEND_URL, f"repo-structure/{username}/{repo_name}/"))
+                    if response.status_code == 200:
+                        st.session_state.root_structure = response.json()["structure"]
+            
+            # Extract file list for selection
+            if 'file_list' not in st.session_state:
+                st.session_state.file_list = []
+                
+                def extract_files(structure, path=""):
+                    files = []
+                    for item in structure:
+                        item_path = f"{path}/{item['name']}" if path else item['name']
+                        if item["type"] == "file" and item.get("download_url"):
+                            files.append({
+                                "path": item_path,
+                                "url": item["download_url"]
+                            })
+                        elif item["type"] == "dir":
+                            # Fetch directory contents if needed
+                            dir_structure = get_repo_structure(username, repo_name, item_path)
+                            if dir_structure:
+                                files.extend(extract_files(dir_structure, item_path))
+                    return files
+                
+                with st.spinner("Building file list..."):
+                    if 'root_structure' in st.session_state:
+                        st.session_state.file_list = extract_files(st.session_state.root_structure)
+            
+            # File selection dropdown
+            if st.session_state.file_list:
+                file_paths = [file["path"] for file in st.session_state.file_list]
+                selected_file = st.selectbox("Select a file to analyze", file_paths)
+                
+                # Find the URL for the selected file
+                selected_file_url = next((file["url"] for file in st.session_state.file_list if file["path"] == selected_file), None)
+                
+                if selected_file_url:
+                    # Code analysis query
+                    query = st.text_area(
+                        "Ask about this code file",
+                        height=100,
+                        help="Example: 'Explain what this code does' or 'How can I optimize this code?'"
+                    )
+                    
+                    if st.button("Submit Code Query"):
+                        if not query.strip():
+                            st.warning("Please enter a query before submitting.")
+                        else:
+                            with st.spinner("Processing your query with Groq..."):
+                                try:
+                                    # Send query to backend
+                                    response = requests.post(
+                                        urljoin(BACKEND_URL, "query-code/"),
+                                        json={
+                                            "file_url": selected_file_url,
+                                            "query": query
+                                        }
+                                    )
+                                    
+                                    if response.status_code == 200:
+                                        result = response.json()
+                                        
+                                        # Add to history
+                                        st.session_state.groq_history.append({
+                                            "query": f"[File: {selected_file}] {query}",
+                                            "response": result["response"],
+                                            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+                                        })
+                                        
+                                        # Force a rerun to show the new response
+                                        st.rerun()
+                                    else:
+                                        st.error(f"Error: {response.text}")
+                                except Exception as e:
+                                    st.error(f"Error: {str(e)}")
+            else:
+                st.warning("No files found in this repository or structure not loaded.")
+        except Exception as e:
+            st.error(f"Error loading repository structure: {str(e)}")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Display query history
+    if st.session_state.groq_history:
+        st.markdown("## Conversation History")
+        
+        for i, item in enumerate(st.session_state.groq_history):
+            # User query
+            st.markdown(f'<div class="chat-message user">'
+                      f'<div><strong>You asked:</strong></div>'
+                      f'<div class="message">{item["query"]}</div>'
+                      f'</div>', unsafe_allow_html=True)
+            
+            # AI response
+            st.markdown(f'<div class="chat-message assistant">'
+                      f'<div><strong>AI response:</strong></div>'
+                      f'<div class="message">{item["response"]}</div>'
+                      f'</div>', unsafe_allow_html=True)
+        
+        if st.button("Clear History"):
+            st.session_state.groq_history = []
+            st.rerun()
+    
+    # About section
+    with st.expander("About Groq Integration"):
+        st.markdown("""
+        This feature integrates Groq's powerful language models to analyze repositories and code files.
+        
+        You can:
+        - Ask questions about repository purpose, structure, and potential improvements
+        - Analyze specific code files for understanding, optimization, or debugging
+        - Track your query history for future reference
+        
+        This integration uses LangChain to connect with Groq's API and process your queries.
+        """)
 
 # Initialize session state
 if "page" not in st.session_state:
@@ -386,3 +610,5 @@ if st.session_state.page == "main":
     main_page()
 elif st.session_state.page == "repo_structure":
     repo_structure_page()
+elif st.session_state.page == "groq_assistant":
+    groq_assistant_page()
