@@ -14,7 +14,7 @@ from django.shortcuts import render
 def repositories(request, username):
     """Get all repositories for a GitHub user"""
     try:
-        # Get the token from the database
+
         token_obj = GithubToken.objects.first()
         token = token_obj.token if token_obj else None
         
@@ -39,7 +39,6 @@ def repositories(request, username):
 def repo_structure(request, username, repo_name):
     """Get the structure of a specific repository with support for subpaths"""
     try:
-        # Get the token from the database
         token_obj = GithubToken.objects.first()
         token = token_obj.token if token_obj else None
         
