@@ -152,6 +152,63 @@ st.markdown("""
     .chat-message .message {
         margin-top: 0.5rem;
     }
+    .search-result {
+        background-color: #1e2230;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        border-left: 3px solid #63b3ed;
+        transition: all 0.3s;
+    }
+    .search-result:hover {
+        background-color: #2d3748;
+        border-left: 3px solid #4CAF50;
+    }
+    .search-result-title {
+        color: #63b3ed;
+        font-size: 1.1em;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .search-result-link {
+        color: #a0aec0;
+        font-size: 0.9em;
+        margin-bottom: 8px;
+    }
+    .search-result-snippet {
+        font-size: 0.95em;
+    }
+    .feature-cards {
+        display: flex;
+        gap: 15px;
+        margin-top: 20px;
+    }
+    .feature-card {
+        background-color: #1e2230;
+        border-radius: 10px;
+        padding: 20px;
+        flex: 1;
+        border-top: 4px solid #4CAF50;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+    }
+    .feature-icon {
+        font-size: 2em;
+        margin-bottom: 15px;
+    }
+    .feature-title {
+        font-size: 1.2em;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .feature-description {
+        font-size: 0.9em;
+        color: #a0aec0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -293,7 +350,7 @@ def main_page():
                 selected_repo = st.selectbox("Select Repository", repo_names, help="Choose a repository to explore")
                 
                 if selected_repo:
-                    col1, col2 = st.columns(2)
+                    col1, col2, col3 = st.columns(3)
                     with col1:
                         if st.button("Explore Repository Structure", help="View the repository's file structure"):
                             # Reset any previously stored structures
@@ -314,7 +371,58 @@ def main_page():
                             st.session_state.repo_name = selected_repo
                             st.session_state.page = "groq_assistant"
                             st.rerun()
+                    with col3:
+                        if st.button("Find Resources", help="Search for related resources"):
+                            # Store selection for Resources page
+                            st.session_state.username = username
+                            st.session_state.repo_name = selected_repo
+                            st.session_state.page = "resources"
+                            st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Feature cards for users without a username entered
+        if not username:
+            st.markdown("<h2>Explore our features</h2>", unsafe_allow_html=True)
+            
+            st.markdown('<div class="feature-cards">', unsafe_allow_html=True)
+            
+            # Repository Explorer card
+            st.markdown("""
+            <div class="feature-card" onclick="document.querySelector('.stTextInput input').focus()">
+                <div class="feature-icon">📁</div>
+                <div class="feature-title">Repository Explorer</div>
+                <div class="feature-description">
+                    Browse any GitHub repository with our interactive file explorer.
+                    Navigate through folders and view files with ease.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # AI Assistant card
+            st.markdown("""
+            <div class="feature-card" onclick="document.querySelector('.stTextInput input').focus()">
+                <div class="feature-icon">🤖</div>
+                <div class="feature-title">AI Repository Analysis</div>
+                <div class="feature-description">
+                    Get AI-powered insights and analysis of repositories.
+                    Understand code structure and purpose through natural language.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Resources card
+            st.markdown("""
+            <div class="feature-card" onclick="document.querySelector('.stTextInput input').focus()">
+                <div class="feature-icon">🔍</div>
+                <div class="feature-title">Find Related Resources</div>
+                <div class="feature-description">
+                    Discover tutorials, documentation, and related content
+                    to help you understand and work with repositories better.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown('</div>', unsafe_allow_html=True)
         
         # Adding some information about the application
         with st.expander("About this App"):
@@ -324,6 +432,7 @@ def main_page():
             - Explore its file structure in an interactive tree view
             - View and download files
             - Analyze repositories and code using Groq AI
+            - Find related resources and documentation
             
             The application uses GitHub's API to fetch repository data in real time.
             """)
@@ -601,6 +710,162 @@ def groq_assistant_page():
         This integration uses LangChain to connect with Groq's API and process your queries.
         """)
 
+def resources_page():
+    """Page for finding related resources using Google Custom Search API and Groq formatting"""
+    username = st.session_state.username
+    repo_name = st.session_state.repo_name
+    
+    # Back button
+    if st.button("⬅ Back to Search", key="back_from_resources"):
+        st.session_state.page = "main"
+        st.rerun()
+    
+    st.markdown('<h1 style="text-align: center;">Find Related Resources</h1>', unsafe_allow_html=True)
+    
+    # Repository header with user and repo info
+    st.markdown(
+        f'''<div class="repo-header">
+            <h1>{repo_name}</h1>
+            <p>Repository by <a href="https://github.com/{username}" target="_blank">{username}</a></p>
+        </div>''',
+        unsafe_allow_html=True
+    )
+    
+    # Initialize session state for search history
+    if 'search_history' not in st.session_state:
+        st.session_state.search_history = []
+    
+    # Search section
+    st.markdown('<div class="search-container">', unsafe_allow_html=True)
+    
+    # Get repository description to provide context
+    try:
+        if 'repo_description' not in st.session_state:
+            with st.spinner("Fetching repository information..."):
+                response = requests.get(f"https://api.github.com/repos/{username}/{repo_name}")
+                if response.status_code == 200:
+                    repo_info = response.json()
+                    st.session_state.repo_description = repo_info.get("description", "")
+                    st.session_state.repo_language = repo_info.get("language", "")
+                else:
+                    st.session_state.repo_description = ""
+                    st.session_state.repo_language = ""
+    except Exception as e:
+        st.error(f"Error fetching repository information: {str(e)}")
+        st.session_state.repo_description = ""
+        st.session_state.repo_language = ""
+    
+    # Search type selection
+    search_type = st.radio(
+        "Search Type",
+        ["Tutorials", "Documentation", "Examples", "Custom Search"],
+        horizontal=True
+    )
+    
+    # Base search query with repo context
+    base_query = f"{repo_name} {st.session_state.repo_language}"
+    
+    if search_type == "Tutorials":
+        search_context = f"tutorials for {base_query}"
+        placeholder = "Find tutorials for this repository's technology"
+    elif search_type == "Documentation":
+        search_context = f"documentation for {base_query}"
+        placeholder = "Find official documentation for this repository's technology"
+    elif search_type == "Examples":
+        search_context = f"example projects using {base_query}"
+        placeholder = "Find example projects using similar technology"
+    else:  # Custom Search
+        search_context = base_query
+        placeholder = "Enter your custom search query"
+    
+    # Custom search input
+    custom_query = st.text_input(f"Search query", 
+                               value=search_context,
+                               placeholder=placeholder)
+    
+    if st.button("Search for Resources"):
+        if not custom_query.strip():
+            st.warning("Please enter a search query before submitting.")
+        else:
+            with st.spinner("Searching for resources..."):
+                try:
+                    # Send query to backend
+                    response = requests.post(
+                        urljoin(BACKEND_URL, "google-search/"),
+                        json={"query": custom_query}
+                    )
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        
+                        # Add to search history
+                        st.session_state.search_history.append({
+                            "query": custom_query,
+                            "response": result["response"],
+                            "raw_results": result.get("raw_results", []),
+                            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+                        })
+                        
+                        # Force a rerun to show the new response
+                        st.rerun()
+                    else:
+                        st.error(f"Error: {response.text}")
+                except Exception as e:
+                    st.error(f"Error: {str(e)}")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Display search results
+    if st.session_state.search_history:
+        st.markdown("## Search Results")
+        
+        # Show most recent search result
+        latest = st.session_state.search_history[-1]
+        
+        # Main results - formatted by Groq
+        st.markdown(latest["response"])
+        
+        # Raw results in expandable section
+        with st.expander("View Raw Search Results"):
+            for i, raw_result in enumerate(latest["raw_results"]):
+                st.markdown(
+                    f'''<div class="search-result">
+                        <div class="search-result-title">{raw_result.get("title", "No title")}</div>
+                        <div class="search-result-link">{raw_result.get("link", "#")}</div>
+                        <div class="search-result-snippet">{raw_result.get("snippet", "No description available")}</div>
+                    </div>''',
+                    unsafe_allow_html=True
+                )
+        
+        # Previous searches
+        if len(st.session_state.search_history) > 1:
+            with st.expander("Previous Searches"):
+                for i in range(len(st.session_state.search_history) - 2, -1, -1):
+                    item = st.session_state.search_history[i]
+                    st.markdown(f"### Search: {item['query']}")
+                    st.markdown(f"*{item['timestamp']}*")
+                    if st.button(f"Show Results", key=f"prev_search_{i}"):
+                        # Move this item to the end of the list (make it current)
+                        st.session_state.search_history.append(st.session_state.search_history.pop(i))
+                        st.rerun()
+        
+        if st.button("Clear Search History"):
+            st.session_state.search_history = []
+            st.rerun()
+    
+    # About section
+    with st.expander("About Resource Search"):
+        st.markdown("""
+        This feature helps you find valuable resources related to the repository by:
+        
+        - Automatically generating search queries based on repository context
+        - Using Google's search API to find relevant content
+        - Enhancing results with Groq's AI for better organization and relevance
+        - Providing different search modes for tutorials, documentation, and examples
+        
+        Results are formatted for easy reading and include direct links to resources.
+        """)
+
 # Initialize session state
 if "page" not in st.session_state:
     st.session_state.page = "main"
@@ -612,3 +877,5 @@ elif st.session_state.page == "repo_structure":
     repo_structure_page()
 elif st.session_state.page == "groq_assistant":
     groq_assistant_page()
+elif st.session_state.page == "resources":
+    resources_page()

@@ -1,17 +1,14 @@
-# Updated github_app/views.py to support path parameter for nested structures
-
 from django.http import JsonResponse
 import requests
-from .models import GithubToken
-from rest_framework.decorators import api_view
-
-
+from .models import GithubToken, GoogleSearchAPIKey
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .utils import process_repository_query, process_code_query
+from .utils import process_repository_query, process_code_query, process_google_search_results, perform_google_search
 from .models import GroqQuery
 import requests
 import json
+import os
+from django.shortcuts import render
 
 @api_view(['GET'])
 def repositories(request, username):
@@ -153,6 +150,145 @@ def query_code(request):
         )
         
         return Response({"response": response})
+    
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+@api_view(['POST'])
+def google_search(request):
+    """API endpoint to perform Google search and enhance results with Groq"""
+    try:
+        # Get data from request
+        data = request.data
+        query = data.get('query')
+        username = data.get('username', '')
+        repo_name = data.get('repo_name', '')
+        search_type = data.get('search_type', 'Custom Search')
+        
+        if not query:
+            return Response({"error": "Search query is required"}, status=400)
+        
+        # Try to get Google API credentials from database first
+        api_credentials = GoogleSearchAPIKey.objects.first()
+        
+        # If not in database, use environment variables as fallback
+        if not api_credentials:
+            api_key = os.environ.get('GOOGLE_API_KEY')
+            cx_id = os.environ.get('GOOGLE_CSE_ID')
+            
+            if not api_key or not cx_id:
+                return Response({"error": "Google Search API credentials not configured"}, status=500)
+        else:
+            api_key = api_credentials.api_key
+            cx_id = api_credentials.cx_id
+        
+        # Perform Google search
+        search_results = perform_google_search(
+            query=query,
+            api_key=api_key,
+            cx_id=cx_id,
+            num_results=10
+        )
+        
+        # Process results with Groq
+        enhanced_results = process_google_search_results(search_results, query)
+        
+        # Save query and response with repo context if available
+        query_context = f"{search_type}: {query}"
+        if username and repo_name:
+            query_context = f"[{username}/{repo_name}] {query_context}"
+            
+        GroqQuery.objects.create(
+            query=query_context,
+            response=enhanced_results
+        )
+        
+        return Response({
+            "response": enhanced_results,
+            "raw_results": search_results.get("items", []),
+            "query": query,
+            "search_type": search_type,
+            "timestamp": GroqQuery.objects.latest('timestamp').timestamp.isoformat() if GroqQuery.objects.exists() else None
+        })
+    
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+def resources_page(request):
+    """Render the resources page template"""
+    # Get repository context from query parameters if available
+    username = request.GET.get('username', '')
+    repo_name = request.GET.get('repo_name', '')
+    
+    context = {
+        'username': username,
+        'repo_name': repo_name,
+    }
+    
+    # If we have a repo context, try to get additional info
+    if username and repo_name:
+        try:
+            # Fetch repository information
+            repo_url = f"https://api.github.com/repos/{username}/{repo_name}"
+            repo_response = requests.get(repo_url)
+            
+            if repo_response.status_code == 200:
+                repo_data = repo_response.json()
+                context.update({
+                    'repo_description': repo_data.get('description', ''),
+                    'repo_language': repo_data.get('language', ''),
+                    'repo_stars': repo_data.get('stargazers_count', 0),
+                    'repo_forks': repo_data.get('forks_count', 0)
+                })
+        except Exception:
+            # If there's an error, we'll just use the basic context
+            pass
+    
+    return render(request, 'github_app/resources.html', context)
+
+@api_view(['GET'])
+def get_repo_info(request, username, repo_name):
+    """Get repository information for the resources page"""
+    try:
+        # Fetch repository information
+        repo_url = f"https://api.github.com/repos/{username}/{repo_name}"
+        repo_response = requests.get(repo_url)
+        
+        if repo_response.status_code == 200:
+            repo_data = repo_response.json()
+            return Response({
+                'description': repo_data.get('description', ''),
+                'language': repo_data.get('language', ''),
+                'stars': repo_data.get('stargazers_count', 0),
+                'forks': repo_data.get('forks_count', 0)
+            })
+        else:
+            return Response({"error": "Repository not found"}, status=404)
+    
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+@api_view(['GET'])
+def search_history(request, count=5):
+    """Get recent search history for the resources page"""
+    try:
+        # Get most recent queries
+        recent_queries = GroqQuery.objects.filter(
+            query__startswith="Google Search"
+        ).order_by('-timestamp')[:int(count)]
+        
+        results = []
+        for query in recent_queries:
+            # Extract the actual query from the saved query string
+            query_text = query.query.replace("Google Search: ", "")
+            results.append({
+                'id': query.id,
+                'query': query_text,
+                'response': query.response,
+                'timestamp': query.timestamp.isoformat()
+            })
+        
+        return Response({"history": results})
     
     except Exception as e:
         return Response({"error": str(e)}, status=500)

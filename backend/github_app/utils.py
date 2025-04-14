@@ -3,6 +3,7 @@ from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 import os
 from django.conf import settings
+import requests
 
 def get_groq_llm(model_name="llama3-8b-8192"):
     """Initialize and return a Groq LLM instance"""
@@ -111,3 +112,100 @@ def process_code_query(code_content, query):
     )
     
     return response
+
+def process_google_search_results(search_results, query):
+    """
+    Process Google search results using Groq for better formatting and summarization
+    
+    Args:
+        search_results (dict): Search results from Google Custom Search API
+        query (str): User's original search query
+        
+    Returns:
+        str: Formatted and enhanced response from Groq
+    """
+    # Initialize LLM
+    llm = get_groq_llm()
+    
+    # Extract relevant information from search results
+    items = search_results.get('items', [])
+    formatted_results = []
+    
+    for item in items[:5]:  # Limit to first 5 results for prompt size
+        formatted_results.append({
+            'title': item.get('title', ''),
+            'link': item.get('link', ''),
+            'snippet': item.get('snippet', '')
+        })
+    
+    # Convert to string representation
+    results_text = ""
+    for i, result in enumerate(formatted_results, 1):
+        results_text += f"Result {i}:\n"
+        results_text += f"Title: {result['title']}\n"
+        results_text += f"Link: {result['link']}\n"
+        results_text += f"Snippet: {result['snippet']}\n\n"
+    
+    # Create prompt template
+    template = """
+    You are an AI research assistant that helps format and enhance search results.
+    
+    Original Search Query: {query}
+    
+    Search Results:
+    {results}
+    
+    Your task is to:
+    1. Provide a brief summary of what these search results tell us about the query
+    2. Identify the most relevant information from these results
+    3. Format the information in a clear, structured way with markdown formatting
+    4. Include any relevant links from the search results
+    5. If the results don't seem to answer the query well, suggest alternative search terms
+    
+    Please provide your response in markdown format with appropriate headings, bullet points, and formatting to make it easy to read.
+    """
+    
+    prompt = PromptTemplate(
+        input_variables=["query", "results"],
+        template=template
+    )
+    
+    # Create chain
+    chain = LLMChain(llm=llm, prompt=prompt)
+    
+    # Run chain
+    response = chain.run(
+        query=query,
+        results=results_text
+    )
+    
+    return response
+
+def perform_google_search(query, api_key, cx_id, num_results=10):
+    """
+    Perform a Google search using the Custom Search JSON API
+    
+    Args:
+        query (str): Search query
+        api_key (str): Google API Key
+        cx_id (str): Custom Search Engine ID
+        num_results (int): Number of results to return
+        
+    Returns:
+        dict: Search results
+    """
+    base_url = "https://www.googleapis.com/customsearch/v1"
+    
+    params = {
+        'q': query,
+        'key': api_key,
+        'cx': cx_id,
+        'num': num_results
+    }
+    
+    response = requests.get(base_url, params=params)
+    
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise Exception(f"Search API error: {response.status_code}, {response.text}")
