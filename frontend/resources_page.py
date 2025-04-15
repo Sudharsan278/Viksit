@@ -9,11 +9,6 @@ def resources_page():
     username = st.session_state.username
     repo_name = st.session_state.repo_name
     
-    # Back button
-    if st.button("⬅ Back to Search", key="back_from_resources"):
-        st.session_state.page = "main"
-        st.rerun()
-    
     st.markdown('<h1 style="text-align: center;">Find Related Resources</h1>', unsafe_allow_html=True)
     
     # Repository header with user and repo info

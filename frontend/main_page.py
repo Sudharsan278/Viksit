@@ -17,37 +17,28 @@ def main_page():
                 selected_repo = st.selectbox("Select Repository", repo_names, help="Choose a repository to explore")
                 
                 if selected_repo:
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        if st.button("Explore Repository Structure", help="View the repository's file structure"):
-                            # Reset any previously stored structures
-                            if 'top_level_structure' in st.session_state:
-                                del st.session_state['top_level_structure']
-                            # Clear folder states
-                            for key in list(st.session_state.keys()):
-                                if key.startswith('folder_'):
-                                    del st.session_state[key]
-                            
-                            # Store selection for structure page
-                            st.session_state.username = username
-                            st.session_state.repo_name = selected_repo
-                            st.session_state.page = "repo_structure"
-                            st.session_state.view_file = False
-                            st.rerun()
-                    with col2:
-                        if st.button("Ask AI About This Repo", help="Use Groq to analyze this repository"):
-                            # Store selection for Groq page
-                            st.session_state.username = username
-                            st.session_state.repo_name = selected_repo
-                            st.session_state.page = "groq_assistant"
-                            st.rerun()
-                    with col3:
-                        if st.button("Find Resources", help="Search for related resources"):
-                            # Store selection for Resources page
-                            st.session_state.username = username
-                            st.session_state.repo_name = selected_repo
-                            st.session_state.page = "resources"
-                            st.rerun()
+                    if st.button("Explore Repository", help="View the repository's details and structure"):
+                        # Reset any previously stored structures
+                        if 'top_level_structure' in st.session_state:
+                            del st.session_state['top_level_structure']
+                        # Clear folder states
+                        for key in list(st.session_state.keys()):
+                            if key.startswith('folder_'):
+                                del st.session_state[key]
+                        
+                        # Clear previous AI analysis history
+                        if 'groq_history' in st.session_state:
+                            del st.session_state['groq_history']
+                        
+                        if 'code_analysis_history' in st.session_state:
+                            del st.session_state['code_analysis_history']
+                        
+                        # Store selection for structure page
+                        st.session_state.username = username
+                        st.session_state.repo_name = selected_repo
+                        st.session_state.page = "repo_structure"
+                        st.session_state.view_file = False
+                        st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
         
         # Feature cards for users without a username entered
@@ -80,14 +71,14 @@ def main_page():
             </div>
             """, unsafe_allow_html=True)
             
-            # Resources card
+            # Code Analysis card
             st.markdown("""
             <div class="feature-card" onclick="document.querySelector('.stTextInput input').focus()">
-                <div class="feature-icon">🔍</div>
-                <div class="feature-title">Find Related Resources</div>
+                <div class="feature-icon">💻</div>
+                <div class="feature-title">Code Analysis</div>
                 <div class="feature-description">
-                    Discover tutorials, documentation, and related content
-                    to help you understand and work with repositories better.
+                    Get detailed explanations and suggestions for specific code files.
+                    Improve your understanding with AI-powered code analysis.
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -101,8 +92,8 @@ def main_page():
             - Browse any public GitHub repository
             - Explore its file structure in an interactive tree view
             - View and download files
-            - Analyze repositories and code using Groq AI
-            - Find related resources and documentation
+            - Get AI-powered analysis of repositories and code files
+            - Ask natural language questions about repositories and receive structured answers
             
-            The application uses GitHub's API to fetch repository data in real time.
+            The application uses GitHub's API to fetch repository data in real time and AI to analyze code.
             """)
