@@ -4,6 +4,7 @@ from repo_structure_page import repo_structure_page
 from resources_page import resources_page
 from code_editor_page import code_editor_page
 from about_page import about_page
+from community_page import community_page  # Import the new community page
 import utils
 
 # Set page configuration with a premium look
@@ -46,7 +47,7 @@ def sign_out():
 
 # Navigation bar
 def render_navbar():
-    col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 2, 1])
+    col1, col2, col3, col4, col5, col6 = st.columns([2, 2, 2, 2, 2, 1])
     
     with col1:
         if st.button("📊 Repository", key="nav_repo", use_container_width=True):
@@ -61,10 +62,14 @@ def render_navbar():
             st.session_state.page = "code_editor"
             st.rerun()
     with col4:
+        if st.button("👥 Community", key="nav_community", use_container_width=True):
+            st.session_state.page = "community"
+            st.rerun()
+    with col5:
         if st.button("ℹ️ About", key="nav_about", use_container_width=True):
             st.session_state.page = "about"
             st.rerun()
-    with col5:
+    with col6:
         if st.button("🚪 Sign Out", key="nav_signout", use_container_width=True):
             sign_out()
 
@@ -104,5 +109,7 @@ else:
         resources_page()
     elif st.session_state.page == "code_editor":
         code_editor_page()
+    elif st.session_state.page == "community":
+        community_page()  # Add the new community page
     elif st.session_state.page == "about":
         about_page()

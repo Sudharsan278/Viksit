@@ -127,19 +127,28 @@ def query_code(request):
         data = request.data
         file_url = data.get('file_url')
         query = data.get('query')
+        file_content = data.get('file_content')  # Get the file content from the request
         
-        if not all([file_url, query]):
-            return Response({"error": "File URL and query are required"}, status=400)
+        if not query:
+            return Response({"error": "Query is required"}, status=400)
         
-        # Fetch file content
-        file_response = requests.get(file_url)
+        # Use provided file content if available, otherwise try to fetch from URL
+        if not file_content:
+            if not file_url:
+                return Response({"error": "Either file_content or file_url is required"}, status=400)
+            
+            # Fetch file content from URL
+            try:
+                file_response = requests.get(file_url)
+                
+                if file_response.status_code != 200:
+                    return Response({"error": "File not found"}, status=404)
+                
+                file_content = file_response.text
+            except Exception as e:
+                return Response({"error": f"Failed to fetch file: {str(e)}"}, status=500)
         
-        if file_response.status_code != 200:
-            return Response({"error": "File not found"}, status=404)
-        
-        file_content = file_response.text
-        
-        # Process query using Groq
+        # Process query using Groq with the file content
         response = process_code_query(file_content, query)
         
         # Save query and response
@@ -152,7 +161,8 @@ def query_code(request):
     
     except Exception as e:
         return Response({"error": str(e)}, status=500)
-
+    
+    
 @api_view(['POST'])
 def google_search(request):
     """API endpoint to perform Google search and enhance results with Groq"""

@@ -8,6 +8,14 @@ from utils import get_file_content, get_repo_structure, get_file_icon, BACKEND_U
 
 def code_editor_page():
     """Interactive code editor page for viewing and editing repository files with Groq AI assistant integration"""
+    # Check if username and repo_name are set
+    if not st.session_state.get("username") or not st.session_state.get("repo_name"):
+        st.warning("No repository selected. Please select a repository from the main page first.")
+        if st.button("Go to Main Page"):
+            st.session_state.page = "main"
+            st.rerun()
+        return
+    
     username = st.session_state.username
     repo_name = st.session_state.repo_name
     
@@ -146,8 +154,17 @@ def code_editor_page():
                             st.session_state.view_file = True
                             st.rerun()
         
-        # Render the interactive directory structure
-        render_interactive_directory_structure(st.session_state.file_tree)
+        # Render the interactive directory structure if file tree exists
+        if st.session_state.file_tree:
+            render_interactive_directory_structure(st.session_state.file_tree)
+        else:
+            st.warning("No repository structure available. Fetching now...")
+            # Attempt to fetch repository structure
+            try:
+                st.session_state.file_tree = get_repo_structure(username, repo_name)
+                st.rerun()
+            except Exception as e:
+                st.error(f"Error fetching repository structure: {str(e)}")
     
     with col2:
         if st.session_state.view_file and st.session_state.current_file:
@@ -208,46 +225,34 @@ def code_editor_page():
                     help="Example: 'Explain what this code does', 'Suggest optimizations', or 'Generate a similar function'"
                 )
                 
-                # Quick actions buttons
-                st.markdown("### Quick Actions")
-                quick_actions_col1, quick_actions_col2, quick_actions_col3 = st.columns(3)
-                
-                with quick_actions_col1:
-                    if st.button("Explain Code"):
-                        query = f"Explain what this code does in {st.session_state.current_file}"
-                        # Set the text area value
-                        st._rerun_queue = query
-                
-                with quick_actions_col2:
-                    if st.button("Optimize Code"):
-                        query = f"Suggest optimizations for this code in {st.session_state.current_file}"
-                        # Set the text area value
-                        st._rerun_queue = query
-                
-                with quick_actions_col3:
-                    if st.button("Add Documentation"):
-                        query = f"Add proper documentation and comments to this code in {st.session_state.current_file}"
-                        # Set the text area value
-                        st._rerun_queue = query
-                
+                # Submit Query button
                 if st.button("Submit Query"):
                     if not query.strip():
                         st.warning("Please enter a query before submitting.")
                     else:
                         with st.spinner("Processing your query with Groq..."):
                             try:
-                                # Get the file URL for the selected file
-                                # This is simulated since we don't have direct access to file_url
+                                # Use the current file content in the editor
+                                current_content = st.session_state.edited_files.get(
+                                    st.session_state.current_file, 
+                                    st.session_state.file_content
+                                )
+                                
+                                # Generate a fallback URL for compatibility with backend
                                 file_url = f"https://raw.githubusercontent.com/{username}/{repo_name}/main/{st.session_state.current_file}"
+                                
+                                # Prepare payload with all required fields
+                                payload = {
+                                    "file_url": file_url,  # Keep the URL format as backend expects it
+                                    "query": query,
+                                    "file_content": current_content  # Send the content directly
+                                }
                                 
                                 # Send query to backend
                                 response = requests.post(
                                     urljoin(BACKEND_URL, "query-code/"),
-                                    json={
-                                        "file_url": file_url,
-                                        "query": query,
-                                        "file_content": st.session_state.file_content  # Send the current content directly
-                                    }
+                                    json=payload,
+                                    timeout=60  # Increase timeout for larger files
                                 )
                                 
                                 if response.status_code == 200:
@@ -263,9 +268,21 @@ def code_editor_page():
                                     # Force a rerun to show the new response
                                     st.rerun()
                                 else:
-                                    st.error(f"Error: {response.text}")
+                                    error_msg = response.text
+                                    try:
+                                        error_json = response.json()
+                                        if "error" in error_json:
+                                            error_msg = error_json["error"]
+                                    except:
+                                        pass
+                                    
+                                    st.error(f"Error: {error_msg}")
+                            except requests.exceptions.RequestException as e:
+                                st.error(f"Connection error: {str(e)}")
+                                st.info("Check your internet connection or the backend service status.")
                             except Exception as e:
-                                st.error(f"Error: {str(e)}")
+                                st.error(f"Unexpected error: {str(e)}")
+                                st.write(f"Debug info: {type(e).__name__}")
                 
                 # Display query history
                 if st.session_state.groq_history:
@@ -315,5 +332,4 @@ def code_editor_page():
                         st.session_state.groq_history = []
                         st.rerun()
         else:
-            st.markdown("### No file selected")
-            st.markdown("Select a file from the explorer to start editing")
+            st.info("Select a file from the explorer to start editing")
