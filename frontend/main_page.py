@@ -18,9 +18,19 @@ def main_page():
                 
                 if selected_repo:
                     if st.button("Explore Repository", help="View the repository's details and structure"):
-                        # Reset any previously stored structures
+                        # Reset all repository-related data when selecting a new repository
+                        # Clear structure data
                         if 'top_level_structure' in st.session_state:
                             del st.session_state['top_level_structure']
+                        
+                        # Clear documentation data
+                        if 'repo_documentation' in st.session_state:
+                            del st.session_state['repo_documentation']
+                        if 'overview_text' in st.session_state:
+                            del st.session_state['overview_text']
+                        if 'current_audio' in st.session_state:
+                            del st.session_state['current_audio']
+                        
                         # Clear folder states
                         for key in list(st.session_state.keys()):
                             if key.startswith('folder_'):
@@ -29,9 +39,12 @@ def main_page():
                         # Clear previous AI analysis history
                         if 'groq_history' in st.session_state:
                             del st.session_state['groq_history']
-                        
                         if 'code_analysis_history' in st.session_state:
                             del st.session_state['code_analysis_history']
+                        
+                        # Clear audio cache
+                        if 'audio_cache' in st.session_state:
+                            st.session_state.audio_cache = {}
                         
                         # Store selection for structure page
                         st.session_state.username = username

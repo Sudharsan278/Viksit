@@ -4,6 +4,190 @@ from utils import get_repo_structure, render_interactive_directory_structure, ge
 from urllib.parse import urljoin
 import time
 from utils import BACKEND_URL
+import os
+from utils import get_documentation
+import json
+from dotenv import load_dotenv
+import base64
+import re
+
+load_dotenv()
+
+def translate_documentation(documentation, target_language_code):
+    """
+    Translate documentation to the specified language using Sarvam API
+    
+    Args:
+        documentation (str): Original documentation text
+        target_language_code (str): Target language code for translation
+        
+    Returns:
+        str: Translated documentation
+    """
+    try:
+        # Get API key from environment variables
+        api_key = os.environ.get('SARVAM_API_KEY')
+        if not api_key:
+            st.warning("Sarvam API key not found. Please set SARVAM_API_KEY in environment variables.")
+            return documentation
+
+        # Prepare the request payload as per Sarvam API specs
+        url = "https://api.sarvam.ai/translate"
+        payload = {
+            "input": documentation,
+            "source_language_code": "en-IN",  # Assuming original documentation is in English
+            "target_language_code": target_language_code
+        }
+        
+        headers = {
+            "Content-Type": "application/json",
+            "api-subscription-key": api_key
+        }
+        
+        # Make API request to Sarvam
+        response = requests.post(url, json=payload, headers=headers)
+        
+        if response.status_code == 200:
+            result = response.json()
+            return result.get("translated_text", documentation)
+        else:
+            # Fallback to adding a note about translation failure
+            st.error(f"Translation failed: {response.text}")
+            return f"[Translation to {target_language_code} failed - showing English version]\n\n{documentation}"
+    except Exception as e:
+        # Return original with error note if translation fails
+        st.error(f"Translation error: {str(e)}")
+        return f"[Translation error: {str(e)}]\n\n{documentation}"
+
+def text_to_speech(text, language_code, speaker="meera"):
+    """
+    Convert text to speech using Sarvam API
+    
+    Args:
+        text (str): Text to convert to speech
+        language_code (str): Target language code
+        speaker (str): Speaker voice to use
+        
+    Returns:
+        bytes: Audio data in base64 encoded format or None if error
+    """
+    try:
+        api_key = os.environ.get('SARVAM_API_KEY')
+        if not api_key:
+            st.warning("Sarvam API key not found. Please set SARVAM_API_KEY in environment variables.")
+            return None
+
+        # Limit text to first 1000 characters
+        text_to_speak = text[:1000]
+        
+        # Prepare the request payload
+        url = "https://api.sarvam.ai/text-to-speech"
+        payload = {
+            "inputs": [text_to_speak],  # Using only first 1000 chars
+            "target_language_code": language_code,
+            "speaker": "maitreyi",
+            "pitch": 1.0,
+            "pace": 1.0,
+            "loudness": 1.0,
+            "speech_sample_rate": 16000,
+            "enable_preprocessing": True,
+            "model": "bulbul:v1"
+        }
+        
+        headers = {
+            "Content-Type": "application/json",
+            "api-subscription-key": api_key
+        }
+        
+        # Make API request to Sarvam
+        response = requests.post(url, json=payload, headers=headers)
+        
+        if response.status_code == 200:
+            result = response.json()
+            # Return the audio content (base64 encoded)
+            return result.get("audios", [None])[0]
+        else:
+            st.error(f"Text-to-speech failed: {response.text}")
+            return None
+    except Exception as e:
+        st.error(f"Text-to-speech error: {str(e)}")
+        return None
+    
+    
+def get_audio_player_html(audio_data):
+    """Generate HTML for audio player with base64 encoded audio data"""
+    audio_html = f"""
+        <audio controls autoplay="false">
+            <source src="data:audio/wav;base64,{audio_data}" type="audio/wav">
+            Your browser does not support the audio element.
+        </audio>
+    """
+    return audio_html
+
+def extract_overview_content(documentation_text):
+    """
+    Extract the content under the Overview heading, and only that content.
+    
+    Args:
+        documentation_text (str): The full documentation text
+        
+    Returns:
+        str: Just the content under the Overview heading
+    """
+    # First try to match the Overview section using regex
+    # This looks for any level of heading with "Overview" text and captures the content until the next heading
+    overview_pattern = re.compile(r'#{1,6}\s+Overview\s*\n+(.*?)(?=\n#{1,6}\s+|\Z)', re.DOTALL)
+    overview_match = overview_pattern.search(documentation_text)
+    
+    if overview_match:
+        # Return the content under the Overview heading, cleaned up
+        return overview_match.group(1).strip()
+    
+    # If regex approach fails, try the split approach
+    if "# Overview" in documentation_text or "## Overview" in documentation_text or "### Overview" in documentation_text:
+        for heading_level in range(1, 7):  # Try different heading levels (# to ######)
+            heading = '#' * heading_level + ' Overview'
+            if heading in documentation_text:
+                parts = documentation_text.split(heading, 1)
+                if len(parts) > 1:
+                    # Get content after the heading
+                    content_after_heading = parts[1].strip()
+                    
+                    # Find the next heading
+                    next_heading_match = re.search(r'\n#{1,6}\s+', content_after_heading)
+                    if next_heading_match:
+                        # Extract content up to the next heading
+                        return content_after_heading[:next_heading_match.start()].strip()
+                    else:
+                        # If no next heading, use all the remaining content
+                        return content_after_heading.strip()
+    
+    # Fallback to looking for "Overview" text as a paragraph header (not a markdown heading)
+    if "\nOverview\n" in documentation_text:
+        parts = documentation_text.split("\nOverview\n", 1)
+        if len(parts) > 1:
+            content_after_header = parts[1].strip()
+            
+            # Find the next blank line (paragraph break)
+            next_para_match = re.search(r'\n\s*\n', content_after_header)
+            if next_para_match:
+                return content_after_header[:next_para_match.start()].strip()
+            else:
+                return content_after_header.strip()
+    
+    # If all else fails, try to find paragraphs after title sections
+    paragraphs = documentation_text.split('\n\n')
+    for i, para in enumerate(paragraphs):
+        if "Overview" in para and i+1 < len(paragraphs):
+            return paragraphs[i+1].strip()
+    
+    # Last resort: just return the first paragraph that's not a heading
+    for para in paragraphs:
+        if not para.strip().startswith('#') and len(para.strip()) > 30:  # Likely a real paragraph
+            return para.strip()
+    
+    # Ultimate fallback: just the first 500 chars if nothing else works
+    return documentation_text[:500].strip()
 
 def repo_structure_page():
     """Page to display repository structure with integrated AI analysis"""
@@ -29,11 +213,81 @@ def repo_structure_page():
         unsafe_allow_html=True
     )
     
+    # Initialize session state variables for documentation
+    if 'repo_documentation' not in st.session_state:
+        st.session_state.repo_documentation = None
+    if 'overview_text' not in st.session_state:
+        st.session_state.overview_text = None
+    if 'audio_cache' not in st.session_state:
+        st.session_state.audio_cache = {}
+
+    # Documentation Section
+    st.markdown("## Repository Documentation")
+    
+    # Generate documentation if it doesn't exist
+    if st.session_state.repo_documentation is None:
+        with st.spinner("Generating documentation..."):
+            try:
+                # Get documentation in English
+                english_documentation = get_documentation(username, repo_name)
+                st.session_state.repo_documentation = english_documentation
+                
+                # Extract overview section for TTS and cache it
+                st.session_state.overview_text = extract_overview_content(english_documentation)
+            except Exception as e:
+                st.error(f"Error generating documentation: {str(e)}")
+                st.session_state.repo_documentation = "Documentation unavailable due to an error."
+                st.session_state.overview_text = "Documentation unavailable due to an error."
+    
+    # Display documentation
+    documentation_text = st.session_state.repo_documentation
+    overview_text = st.session_state.overview_text
+    
+    # Display documentation
+    st.markdown(documentation_text)
+    
+    # Text-to-speech section for the documentation overview
+    # Create cache key for the audio
+    cache_key = f"overview_{hash(overview_text[:500])}"
+    
+    # Add Text-to-Speech button
+    col1, col2 = st.columns([1, 5])
+    with col1:
+        if st.button("🔊 Listen", key="tts_button"):
+            with st.spinner("Generating audio..."):
+                # Check if we have cached audio
+                if cache_key in st.session_state.audio_cache:
+                    audio_data = st.session_state.audio_cache[cache_key]
+                else:
+                    # Get audio data
+                    audio_data = text_to_speech(
+                        overview_text,
+                        language_code="en-IN",
+                        speaker="sonia"
+                    )
+                    
+                    # Cache the audio if successful
+                    if audio_data:
+                        st.session_state.audio_cache[cache_key] = audio_data
+                
+                # Store current audio in session state to display
+                if audio_data:
+                    st.session_state.current_audio = audio_data
+                    st.rerun()
+    
+    # Display audio player if audio is available
+    if 'current_audio' in st.session_state and st.session_state.current_audio:
+        st.markdown("### Audio Overview")
+        st.markdown(get_audio_player_html(st.session_state.current_audio), unsafe_allow_html=True)
+        if st.button("❌ Close Audio"):
+            del st.session_state.current_audio
+            st.rerun()
+    
     # Initialize session state variables for AI analysis
     if 'groq_history' not in st.session_state:
         st.session_state.groq_history = []
     
-    # Repository Information Section at the top
+    # Repository Information Section
     st.markdown("## Repository Information")
     with st.spinner("Loading repository info..."):
         try:
@@ -150,7 +404,6 @@ def repo_structure_page():
         st.warning("No files found in this repository or access denied.")
         
     st.markdown('</div>', unsafe_allow_html=True)
-
 
 def file_view_page():
     """Page to display file content with integrated code analysis"""

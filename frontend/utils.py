@@ -2,6 +2,8 @@ import streamlit as st
 import requests
 import base64
 from urllib.parse import urljoin
+import os
+import json
 
 # Constants
 BACKEND_URL = "http://localhost:8080/api/"
@@ -164,3 +166,124 @@ def render_interactive_directory_structure(structure, path_prefix=""):
                     st.session_state.file_path = item_path
                     st.session_state.view_file = True
                     st.rerun()
+
+def get_sarvam_api_key():
+    """Get the Sarvam API key from environment variables"""
+    api_key = os.environ.get('SARVAM_API_KEY')
+    if not api_key:
+        raise ValueError("Sarvam API key not found. Please set SARVAM_API_KEY in environment variables.")
+    return api_key
+
+def get_documentation(username, repo_name):
+    """
+    Generate comprehensive documentation for a repository using the backend API
+    
+    Args:
+        username (str): GitHub username
+        repo_name (str): Repository name
+        
+    Returns:
+        str: Markdown-formatted documentation
+    """
+    try:
+        # Send request to backend
+        response = requests.post(
+            urljoin(BACKEND_URL, "generate-documentation/"),
+            json={
+                "username": username,
+                "repo_name": repo_name
+            }
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            return result["documentation"]
+        else:
+            # Fallback to generate documentation directly
+            return generate_documentation_fallback(username, repo_name)
+    except Exception as e:
+        # Fallback if backend request fails
+        return generate_documentation_fallback(username, repo_name)
+
+def generate_documentation_fallback(username, repo_name):
+    """
+    Fallback method to generate documentation using GitHub API directly
+    
+    Args:
+        username (str): GitHub username
+        repo_name (str): Repository name
+        
+    Returns:
+        str: Markdown-formatted documentation
+    """
+    try:
+        # Get repository information
+        repo_url = f"https://api.github.com/repos/{username}/{repo_name}"
+        repo_response = requests.get(repo_url)
+        
+        if repo_response.status_code != 200:
+            return "Unable to fetch repository information."
+        
+        repo_data = repo_response.json()
+        
+        # Get README content if available
+        readme_url = f"https://api.github.com/repos/{username}/{repo_name}/readme"
+        readme_response = requests.get(readme_url)
+        readme_content = ""
+        
+        if readme_response.status_code == 200:
+            # GitHub returns README content in base64, decode it
+            import base64
+            readme_data = readme_response.json()
+            readme_content = base64.b64decode(readme_data['content']).decode('utf-8')
+        
+        # Format documentation
+        documentation = f"""# {repo_data.get('name')} Documentation
+
+## Overview
+{repo_data.get('description', 'No description provided')}
+
+### Repository Information
+- **Owner:** {repo_data.get('owner', {}).get('login', 'Unknown')}
+- **Stars:** {repo_data.get('stargazers_count', 0)}
+- **Forks:** {repo_data.get('forks_count', 0)}
+- **Open Issues:** {repo_data.get('open_issues_count', 0)}
+- **Primary Language:** {repo_data.get('language', 'Not specified')}
+- **Created:** {repo_data.get('created_at', '').split('T')[0]}
+- **Last Updated:** {repo_data.get('updated_at', '').split('T')[0]}
+
+## Purpose
+This repository appears to be focused on {repo_data.get('language', 'software development')} 
+and may be used for {get_repo_purpose(repo_data)}.
+
+## README Content
+{readme_content if readme_content else "No README found in this repository."}
+"""
+        return documentation
+    except Exception as e:
+        return f"Documentation generation failed: {str(e)}"
+
+def get_repo_purpose(repo_data):
+    """Determine repository purpose based on name and description"""
+    name = repo_data.get('name', '').lower()
+    description = repo_data.get('description', '').lower()
+    language = repo_data.get('language', '').lower()
+    
+    if 'api' in name or 'api' in description:
+        return "creating or consuming APIs"
+    elif 'web' in name or 'site' in description:
+        return "web development"
+    elif 'app' in name or 'mobile' in description:
+        return "application development"
+    elif 'tool' in name or 'utility' in description:
+        return "providing developer tools or utilities"
+    elif 'data' in name or 'analysis' in description:
+        return "data analysis or processing"
+    elif 'ml' in name or 'machine learning' in description:
+        return "machine learning or AI development"
+    elif language == 'python':
+        return "Python-based software development"
+    elif language == 'javascript':
+        return "JavaScript-based software development"
+    else:
+        return "software development or research"

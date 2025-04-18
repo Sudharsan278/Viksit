@@ -8,6 +8,10 @@ from .models import GroqQuery
 import requests
 import json
 import os
+import base64
+from langchain_groq import ChatGroq
+from langchain.chains import LLMChain
+from langchain.prompts import PromptTemplate
 from django.shortcuts import render
 
 @api_view(['GET'])
@@ -301,3 +305,148 @@ def search_history(request, count=5):
     
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+
+@api_view(['POST'])
+def generate_documentation(request):
+    """API endpoint to generate comprehensive documentation for a repository"""
+    try:
+        # Get data from request
+        data = request.data
+        username = data.get('username')
+        repo_name = data.get('repo_name')
+        
+        if not all([username, repo_name]):
+            return Response({"error": "Username and repository name are required"}, status=400)
+        
+        # Fetch repository information from GitHub API
+        repo_url = f"https://api.github.com/repos/{username}/{repo_name}"
+        repo_response = requests.get(repo_url)
+        
+        if repo_response.status_code != 200:
+            return Response({"error": "Repository not found"}, status=404)
+        
+        repo_data = repo_response.json()
+        
+        # Fetch README if available
+        readme_url = f"https://api.github.com/repos/{username}/{repo_name}/readme"
+        readme_response = requests.get(readme_url)
+        readme_content = ""
+        
+        if readme_response.status_code == 200:
+            readme_data = readme_response.json()
+            readme_content = base64.b64decode(readme_data['content']).decode('utf-8')
+        
+        # Fetch repository structure for top-level directories
+        structure_url = f"https://api.github.com/repos/{username}/{repo_name}/contents"
+        structure_response = requests.get(structure_url)
+        structure_info = ""
+        
+        if structure_response.status_code == 200:
+            structure_data = structure_response.json()
+            # Format structure information
+            structure_info = "\nRepository Structure:\n"
+            for item in structure_data:
+                structure_info += f"- {item['name']} ({item['type']})\n"
+        
+        # Generate documentation using Groq
+        documentation = generate_repo_documentation(
+            repo_data, 
+            readme_content, 
+            structure_info
+        )
+        
+        return Response({"documentation": documentation})
+    
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+def get_groq_llm(model_name="llama3-8b-8192"):
+    """Initialize and return a Groq LLM instance"""
+    # Retrieve API key from environment variable
+    api_key = os.environ.get('GROQ_API_KEY')
+    
+    if not api_key:
+        raise ValueError("Groq API key not found. Please set GROQ_API_KEY in environment variables.")
+    
+    # Create Groq LLM instance
+    llm = ChatGroq(
+        groq_api_key=api_key,
+        model_name=model_name
+    )
+    
+    return llm
+
+def generate_repo_documentation(repo_data, readme_content, structure_info):
+    """
+    Generate comprehensive documentation for a repository using Groq
+    
+    Args:
+        repo_data (dict): Repository information from GitHub API
+        readme_content (str): Content of README file
+        structure_info (str): Information about repository structure
+        
+    Returns:
+        str: Comprehensive documentation in markdown format
+    """
+    # Initialize LLM
+    llm = get_groq_llm()
+    
+    # Create prompt template
+    template = """
+    You are an AI documentation specialist for GitHub repositories.
+    
+    Repository Information:
+    Name: {repo_name}
+    Owner: {repo_owner}
+    Description: {repo_description}
+    Primary Language: {repo_language}
+    Stars: {stars}
+    Forks: {forks}
+    Open Issues: {issues}
+    Created: {created_date}
+    Last Updated: {updated_date}
+    
+    {structure_info}
+    
+    README Content:
+    {readme_content}
+    
+    Your task is to create comprehensive documentation for this repository that includes:
+    1. A clear and detailed overview of what the repository does within 900 characters
+    2. The main purpose and use cases
+    3. Key features or components
+    4. Technology stack (based on the language and files/structure)
+    5. Any installation or usage instructions that can be inferred
+    6. Project structure explanation
+    
+    Format the documentation in clean markdown with appropriate headings, lists, and emphasis.
+    Be concise but informative. Focus on providing valuable information for developers who want to understand and use this repository.
+    Do not generate fictional information - if certain details are not available, mention that they are not provided.
+    """
+    
+    prompt = PromptTemplate(
+        input_variables=["repo_name", "repo_owner", "repo_description", "repo_language", 
+                         "stars", "forks", "issues", "created_date", "updated_date", 
+                         "structure_info", "readme_content"],
+        template=template
+    )
+    
+    # Create chain
+    chain = LLMChain(llm=llm, prompt=prompt)
+    
+    # Run chain
+    response = chain.run(
+        repo_name=repo_data.get('name', 'Unknown'),
+        repo_owner=repo_data.get('owner', {}).get('login', 'Unknown'),
+        repo_description=repo_data.get('description', 'No description available'),
+        repo_language=repo_data.get('language', 'Unknown'),
+        stars=repo_data.get('stargazers_count', 0),
+        forks=repo_data.get('forks_count', 0),
+        issues=repo_data.get('open_issues_count', 0),
+        created_date=repo_data.get('created_at', '').split('T')[0],
+        updated_date=repo_data.get('updated_at', '').split('T')[0],
+        structure_info=structure_info,
+        readme_content=readme_content if readme_content else "No README available"
+    )
+    
+    return response
