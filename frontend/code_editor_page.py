@@ -3,11 +3,14 @@ import os
 import json
 import requests
 import time
+import base64 
+import utils
 from urllib.parse import urljoin
 from utils import get_file_content, get_repo_structure, get_file_icon, BACKEND_URL
 
 def code_editor_page():
     """Interactive code editor page for viewing and editing repository files with Groq AI assistant integration"""
+    
     # Check if username and repo_name are set
     if not st.session_state.get("username") or not st.session_state.get("repo_name"):
         st.warning("No repository selected. Please select a repository from the main page first.")
@@ -216,7 +219,7 @@ def code_editor_page():
             
             with groq_tab:
                 st.markdown("### Groq AI Assistant")
-                st.markdown("Ask questions about this code file or get AI-assisted suggestions.")
+                st.markdown("Ask questions about this code file, upload images, or get AI-assisted suggestions.")
                 
                 # Code analysis query
                 query = st.text_area(
@@ -225,10 +228,13 @@ def code_editor_page():
                     help="Example: 'Explain what this code does', 'Suggest optimizations', or 'Generate a similar function'"
                 )
                 
+                # Add image upload capability
+                uploaded_image = st.file_uploader("Upload an image (optional)", type=['png', 'jpg', 'jpeg'])
+                
                 # Submit Query button
                 if st.button("Submit Query"):
-                    if not query.strip():
-                        st.warning("Please enter a query before submitting.")
+                    if not query.strip() and uploaded_image is None:
+                        st.warning("Please enter a query or upload an image before submitting.")
                     else:
                         with st.spinner("Processing your query with Groq..."):
                             try:
@@ -248,6 +254,12 @@ def code_editor_page():
                                     "file_content": current_content  # Send the content directly
                                 }
                                 
+                                # Add image data to payload if image was uploaded
+                                if uploaded_image is not None:
+                                    # Read image bytes and encode to base64
+                                    image_bytes = uploaded_image.getvalue()
+                                    payload["image"] = base64.b64encode(image_bytes).decode('utf-8')
+                                
                                 # Send query to backend
                                 response = requests.post(
                                     urljoin(BACKEND_URL, "query-code/"),
@@ -258,12 +270,20 @@ def code_editor_page():
                                 if response.status_code == 200:
                                     result = response.json()
                                     
-                                    # Add to history
-                                    st.session_state.groq_history.append({
+                                    # Add to history with image info if present
+                                    history_entry = {
                                         "query": f"[File: {st.session_state.current_file}] {query}",
                                         "response": result["response"],
-                                        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
-                                    })
+                                        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                                        "has_image": uploaded_image is not None
+                                    }
+                                    
+                                    # If there was an image, save thumbnail info
+                                    if uploaded_image is not None:
+                                        # Store image name in history for reference
+                                        history_entry["image_name"] = uploaded_image.name
+                                    
+                                    st.session_state.groq_history.append(history_entry)
                                     
                                     # Force a rerun to show the new response
                                     st.rerun()
@@ -288,11 +308,18 @@ def code_editor_page():
                 if st.session_state.groq_history:
                     st.markdown("## Conversation History")
                     
+                    # Start the conversation container with dark background
+                    st.markdown('<div class="conversation-container">', unsafe_allow_html=True)
+                    
                     for i, item in enumerate(st.session_state.groq_history):
-                        # User query
+                        # User query with image indicator if applicable
+                        query_text = item["query"]
+                        if item.get("has_image", False):
+                            query_text += f' [with image: {item.get("image_name", "uploaded")}]'
+                        
                         st.markdown(f'<div class="chat-message user">'
                                   f'<div><strong>You asked:</strong></div>'
-                                  f'<div class="message">{item["query"]}</div>'
+                                  f'<div class="message">{query_text}</div>'
                                   f'</div>', unsafe_allow_html=True)
                         
                         # AI response
@@ -327,6 +354,9 @@ def code_editor_page():
                                     st.session_state.edited_files[st.session_state.current_file] = main_code
                                     st.success("Applied AI-generated code to the editor!")
                                     st.rerun()
+                    
+                    # Close the conversation container
+                    st.markdown('</div>', unsafe_allow_html=True)
                     
                     if st.button("Clear History"):
                         st.session_state.groq_history = []

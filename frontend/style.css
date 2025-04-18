@@ -127,16 +127,19 @@
     flex-direction: column;
 }
 .chat-message.user {
-    background-color: #2d3748;
+    background-color: #14141e;
     border-left: 4px solid #4299e1;
 }
+
 .chat-message.assistant {
-    background-color: #1e2230;
+    background-color: #14141e;
     border-left: 4px solid #4CAF50;
 }
+
 .chat-message .message {
     margin-top: 0.5rem;
 }
+
 .search-result {
     background-color: #1e2230;
     padding: 15px;
@@ -547,30 +550,6 @@ div[data-testid="stForm"] {
     border: 1px solid #d1d5da;
 }
 
-/* Chat message styles */
-.chat-message {
-    margin-bottom: 20px;
-    padding: 10px;
-    border-radius: 8px;
-}
-
-.chat-message.user {
-    background-color: #f1f8ff;
-    border-left: 4px solid #0366d6;
-}
-
-.chat-message.assistant {
-    background-color: #f6f8fa;
-    border-left: 4px solid #28a745;
-}
-
-.message {
-    margin-top: 5px;
-    padding: 10px;
-    border-radius: 6px;
-    background-color: white;
-}
-
 /* Repository header styles */
 .repo-header {
     padding-bottom: 10px;
@@ -621,4 +600,13 @@ div[data-testid="stForm"] {
     border-radius: 4px;
     font-size: 12px;
     margin-bottom: 10px;
+}
+
+/* Code editor */
+.groq-response {
+    color: #333; /* Dark text color */
+    background-color: black; /* Light gray background */
+    border: 1px solid #ddd; /* Light border */
+    padding: 10px;
+    border-radius: 4px;
 }

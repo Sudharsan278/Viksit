@@ -9,10 +9,12 @@ import requests
 import json
 import os
 import base64
+from groq import Groq
 from langchain_groq import ChatGroq
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 from django.shortcuts import render
+
 
 @api_view(['GET'])
 def repositories(request, username):
@@ -87,18 +89,71 @@ def repo_structure(request, username, repo_name):
         return JsonResponse({'error': str(e)}, status=500)
     
 
+def encode_image(image_data):
+    """Encode image data to base64 string"""
+    if isinstance(image_data, str) and os.path.isfile(image_data):
+        # If image_data is a file path
+        with open(image_data, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode('utf-8')
+    elif not isinstance(image_data, str):
+        # If image_data is binary data
+        return base64.b64encode(image_data).decode('utf-8')
+    else:
+        # If image_data is already a base64 string, return it directly
+        return image_data
+
+
+def process_query_with_groq(text_query, image_data=None):
+    """Process a query using Groq, with optional image data"""
+    client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+    
+    # Prepare message content
+    message_content = []
+    
+    # Add text query if provided
+    if text_query:
+        message_content.append({"type": "text", "text": text_query})
+    
+    # Add image data if provided
+    if image_data:
+        # Get base64 image - either already encoded or encode it now
+        base64_image = encode_image(image_data)
+        
+        message_content.append({
+            "type": "image_url",
+            "image_url": {
+                "url": f"data:image/jpeg;base64,{base64_image}",
+            },
+        })
+    
+    # Create chat completion
+    chat_completion = client.chat.completions.create(
+        messages=[
+            {
+                "role": "user",
+                "content": message_content,
+            }
+        ],
+        model="meta-llama/llama-4-scout-17b-16e-instruct",
+    )
+    
+    return chat_completion.choices[0].message.content
+
 @api_view(['POST'])
 def query_repository(request):
-    """API endpoint to query a repository using Groq"""
+    """API endpoint to query a repository using Groq with multimodal support"""
     try:
         # Get data from request
         data = request.data
         username = data.get('username')
         repo_name = data.get('repo_name')
-        query = data.get('query')
+        text_query = data.get('query')
+        image_data = data.get('image')  # Can be base64 encoded string or binary data
         
-        if not all([username, repo_name, query]):
-            return Response({"error": "Username, repository name, and query are required"}, status=400)
+        if not all([username, repo_name]) or (not text_query and not image_data):
+            return Response({
+                "error": "Username, repository name, and at least one of text query or image are required"
+            }, status=400)
         
         # Fetch repository information from GitHub API
         repo_url = f"https://api.github.com/repos/{username}/{repo_name}"
@@ -109,32 +164,41 @@ def query_repository(request):
         
         repo_data = repo_response.json()
         
-        # Process query using Groq
-        response = process_repository_query(repo_data, query)
+        # Prepare the query context with repository information
+        repo_context = f"Repository: {repo_data['full_name']}\nDescription: {repo_data['description']}\n"
         
-        # Save query and response
+        # Combine the repo context with user's text query if provided
+        full_text_query = f"{repo_context}\n{text_query}" if text_query else repo_context
+        
+        # Process query using Groq with text and/or image
+        response = process_query_with_groq(full_text_query, image_data)
+        
+        # Save query and response (without the has_image field)
         GroqQuery.objects.create(
-            query=query,
+            query=text_query or "Image-based query",
             response=response
+            # has_image field removed
         )
         
         return Response({"response": response})
     
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+    
 
 @api_view(['POST'])
 def query_code(request):
-    """API endpoint to query a specific code file using Groq"""
+    """API endpoint to query a specific code file using Groq with multimodal support"""
     try:
         # Get data from request
         data = request.data
         file_url = data.get('file_url')
-        query = data.get('query')
-        file_content = data.get('file_content')  # Get the file content from the request
+        text_query = data.get('query')
+        file_content = data.get('file_content')
+        image_data = data.get('image')  # Can be base64 encoded string or binary data
         
-        if not query:
-            return Response({"error": "Query is required"}, status=400)
+        if (not text_query and not image_data):
+            return Response({"error": "At least one of text query or image is required"}, status=400)
         
         # Use provided file content if available, otherwise try to fetch from URL
         if not file_content:
@@ -152,13 +216,20 @@ def query_code(request):
             except Exception as e:
                 return Response({"error": f"Failed to fetch file: {str(e)}"}, status=500)
         
-        # Process query using Groq with the file content
-        response = process_code_query(file_content, query)
+        # Prepare the query context with code file content
+        code_context = f"Code file content:\n{file_content}\n"
         
-        # Save query and response
+        # Combine the code context with user's text query if provided
+        full_text_query = f"{code_context}\n{text_query}" if text_query else code_context
+          
+        # Process query using Groq with text and/or image
+        response = process_query_with_groq(full_text_query, image_data)
+        
+        # Save query and response (without the has_image field)
         GroqQuery.objects.create(
-            query=query,
+            query=text_query or "Image-based query",
             response=response
+            # has_image field removed
         )
         
         return Response({"response": response})
@@ -166,7 +237,7 @@ def query_code(request):
     except Exception as e:
         return Response({"error": str(e)}, status=500)
     
-    
+
 @api_view(['POST'])
 def google_search(request):
     """API endpoint to perform Google search and enhance results with Groq"""
@@ -226,6 +297,7 @@ def google_search(request):
     
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+    
 
 def resources_page(request):
     """Render the resources page template"""
