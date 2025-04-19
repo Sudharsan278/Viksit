@@ -85,7 +85,7 @@ def text_to_speech(text, language_code, speaker="meera"):
         payload = {
             "inputs": [text_to_speak],  # Using only first 1000 chars
             "target_language_code": language_code,
-            "speaker": "maitreyi",
+            "speaker": "meera",
             "pitch": 1.0,
             "pace": 1.0,
             "loudness": 1.0,

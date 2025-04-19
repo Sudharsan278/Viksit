@@ -8,6 +8,10 @@ import utils
 from urllib.parse import urljoin
 from utils import get_file_content, get_repo_structure, get_file_icon, BACKEND_URL
 import pyperclip
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 def code_editor_page():
     """Interactive code editor page for viewing and editing repository files with Groq AI assistant integration"""
@@ -77,6 +81,9 @@ def code_editor_page():
     # Initialize Groq history if not present
     if 'groq_history' not in st.session_state:
         st.session_state.groq_history = []
+    # Initialize compilation result
+    if 'compilation_result' not in st.session_state:
+        st.session_state.compilation_result = None
     
     # Back button
     if st.button("⬅ Back to Repository Structure", key="back_to_repo"):
@@ -197,8 +204,8 @@ def code_editor_page():
             # Get file extension for compiler
             file_ext = os.path.splitext(st.session_state.current_file)[1]
             
-            # Tabs for Editor and Groq Assistant
-            editor_tab, groq_tab = st.tabs(["Code Editor", "Groq Assistant"])
+            # Tabs for Editor, Groq Assistant, and Code Compiler
+            editor_tab, groq_tab, compiler_tab = st.tabs(["Code Editor", "Groq Assistant", "Compile & Run"])
             
             with editor_tab:
                 # Determine language for syntax highlighting
@@ -385,5 +392,137 @@ def code_editor_page():
                         st.session_state.groq_history = []
                         st.rerun()
             
+            # New tab for code compilation and execution
+            with compiler_tab:
+                st.markdown("### Compile & Run Code")
+                
+                # Map file extensions to JDoodle language identifiers
+                language_map = {
+                    '.py': ('python3', '4'),
+                    '.js': ('nodejs', '4'),
+                    '.java': ('java', '4'),
+                    '.c': ('c', '5'),
+                    '.cpp': ('cpp', '5'),
+                    '.cs': ('csharp', '4'),
+                    '.php': ('php', '4'),
+                    '.rb': ('ruby', '4'),
+                    '.go': ('go', '4'),
+                    '.rs': ('rust', '4'),
+                    '.ts': ('typescript', '4'),
+                    '.sh': ('bash', '4'),
+                    '.pl': ('perl', '4'),
+                    '.swift': ('swift', '4'),
+                    '.kt': ('kotlin', '4'),
+                    '.r': ('r', '4')
+                }
+                
+                # Get the current file extension and determine if it's compilable
+                current_ext = os.path.splitext(st.session_state.current_file)[1].lower()
+                is_compilable = current_ext in language_map
+                
+                if not is_compilable:
+                    st.warning(f"The current file type ({current_ext}) is not supported for compilation. Supported file types: {', '.join(language_map.keys())}")
+                else:
+                    # Get language and version for JDoodle
+                    jdoodle_lang, version_index = language_map[current_ext]
+                    
+                    # Standard input for the program
+                    stdin = st.text_area("Standard Input (optional)", height=100, 
+                                         help="Enter any input required by your program")
+                    
+                    # Load JDoodle credentials from environment variables
+                    client_id = os.getenv("JDOODLE_CLIENT_ID")
+                    client_secret = os.getenv("JDOODLE_CLIENT_SECRET")
+                    
+                    # Check if credentials are available
+                    if not client_id or not client_secret:
+                        st.error("JDoodle API credentials not found in environment variables. Please add JDOODLE_CLIENT_ID and JDOODLE_CLIENT_SECRET to your .env file.")
+                        
+                        # Show fallback input fields for credentials if not in env
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            client_id = st.text_input("JDoodle Client ID", type="password")
+                        with col2:
+                            client_secret = st.text_input("JDoodle Client Secret", type="password")
+                        
+                        if not client_id or not client_secret:
+                            st.info("Please enter your JDoodle API credentials to continue.")
+                            return
+                    
+                    # Compile and run button
+                    if st.button("Compile & Run"):
+                        with st.spinner("Compiling and running code..."):
+                            try:
+                                # Get the current content of the file from session state
+                                current_content = st.session_state.edited_files.get(
+                                    st.session_state.current_file, 
+                                    st.session_state.file_content
+                                )
+                                
+                                # Prepare the payload for JDoodle
+                                jdoodle_payload = {
+                                    "clientId": client_id,
+                                    "clientSecret": client_secret,
+                                    "script": current_content,
+                                    "stdin": stdin,
+                                    "language": jdoodle_lang,
+                                    "versionIndex": version_index,
+                                    "compileOnly": False
+                                }
+                                
+                                # Send request to JDoodle
+                                jdoodle_response = requests.post(
+                                    "https://api.jdoodle.com/v1/execute",
+                                    json=jdoodle_payload,
+                                    timeout=30  # 30 seconds timeout for JDoodle API
+                                )
+                                
+                                # Parse and store the result
+                                if jdoodle_response.status_code == 200:
+                                    result = jdoodle_response.json()
+                                    st.session_state.compilation_result = result
+                                    st.rerun()
+                                else:
+                                    st.error(f"Error from JDoodle API: {jdoodle_response.text}")
+                                    
+                            except requests.exceptions.RequestException as e:
+                                st.error(f"Connection error with JDoodle: {str(e)}")
+                            except Exception as e:
+                                st.error(f"Unexpected error during compilation: {str(e)}")
+                    
+                    # Display compilation result if available
+                    if st.session_state.compilation_result:
+                        result = st.session_state.compilation_result
+                        
+                        # Create an expandable section for detailed results
+                        with st.expander("Execution Results", expanded=True):
+                            st.markdown("#### Program Output")
+                            
+                            # Display the output in a code block for better formatting
+                            st.code(result.get("output", "No output"), language="text")
+                            
+                            # Display execution details
+                            st.markdown("#### Execution Details")
+                            col1, col2, col3 = st.columns(3)
+                            
+                            with col1:
+                                st.metric("Status Code", result.get("statusCode", "N/A"))
+                            with col2:
+                                st.metric("Memory Used", f"{result.get('memory', 'N/A')} KB")
+                            with col3:
+                                st.metric("CPU Time", f"{result.get('cpuTime', 'N/A')} sec")
+                            
+                            # Add a button to copy output to clipboard
+                            if st.button("Copy Output to Clipboard"):
+                                try:
+                                    pyperclip.copy(result.get("output", ""))
+                                    st.success("Output copied to clipboard!")
+                                except Exception as e:
+                                    st.error(f"Failed to copy to clipboard: {str(e)}")
+                            
+                            # Button to clear results
+                            if st.button("Clear Results"):
+                                st.session_state.compilation_result = None
+                                st.rerun()
         else:
             st.info("Select a file from the explorer to start editing")
