@@ -7,6 +7,7 @@ import base64
 import utils
 from urllib.parse import urljoin
 from utils import get_file_content, get_repo_structure, get_file_icon, BACKEND_URL
+import pyperclip
 
 def code_editor_page():
     """Interactive code editor page for viewing and editing repository files with Groq AI assistant integration"""
@@ -21,6 +22,26 @@ def code_editor_page():
     
     username = st.session_state.username
     repo_name = st.session_state.repo_name
+    
+    # Clear edited files if repository has changed
+    if 'previous_repo' not in st.session_state:
+        st.session_state.previous_repo = f"{username}/{repo_name}"
+    elif st.session_state.previous_repo != f"{username}/{repo_name}":
+        # Repo has changed, reset all file-related state
+        if 'edited_files' in st.session_state:
+            st.session_state.edited_files = {}
+        if 'current_file' in st.session_state:
+            st.session_state.current_file = None
+        if 'file_content' in st.session_state:
+            st.session_state.file_content = ""
+        if 'file_path' in st.session_state:
+            st.session_state.file_path = None
+        if 'view_file' in st.session_state:
+            st.session_state.view_file = False
+        # Force fetch the new repository structure
+        st.session_state.file_tree = get_repo_structure(username, repo_name)
+        # Update the previous repo marker
+        st.session_state.previous_repo = f"{username}/{repo_name}"
     
     st.markdown('<h1 style="text-align: center;">Code Editor</h1>', unsafe_allow_html=True)
     
@@ -173,12 +194,14 @@ def code_editor_page():
         if st.session_state.view_file and st.session_state.current_file:
             st.markdown(f"### Editing: {st.session_state.current_file}")
             
+            # Get file extension for compiler
+            file_ext = os.path.splitext(st.session_state.current_file)[1]
+            
             # Tabs for Editor and Groq Assistant
             editor_tab, groq_tab = st.tabs(["Code Editor", "Groq Assistant"])
             
             with editor_tab:
                 # Determine language for syntax highlighting
-                file_ext = os.path.splitext(st.session_state.current_file)[1]
                 lang_map = {
                     '.py': 'python',
                     '.js': 'javascript',
@@ -361,5 +384,6 @@ def code_editor_page():
                     if st.button("Clear History"):
                         st.session_state.groq_history = []
                         st.rerun()
+            
         else:
             st.info("Select a file from the explorer to start editing")

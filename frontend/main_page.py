@@ -22,6 +22,22 @@ def main_page():
                         # Clear structure data
                         if 'top_level_structure' in st.session_state:
                             del st.session_state['top_level_structure']
+                        if 'file_tree' in st.session_state:
+                            del st.session_state['file_tree']
+                        
+                        # Clear edited files data
+                        if 'edited_files' in st.session_state:
+                            st.session_state.edited_files = {}
+                        
+                        # Clear file content and view states
+                        if 'current_file' in st.session_state:
+                            st.session_state.current_file = None
+                        if 'file_content' in st.session_state:
+                            st.session_state.file_content = ""
+                        if 'file_path' in st.session_state:
+                            st.session_state.file_path = None
+                        if 'view_file' in st.session_state:
+                            st.session_state.view_file = False
                         
                         # Clear documentation data
                         if 'repo_documentation' in st.session_state:
@@ -50,7 +66,6 @@ def main_page():
                         st.session_state.username = username
                         st.session_state.repo_name = selected_repo
                         st.session_state.page = "repo_structure"
-                        st.session_state.view_file = False
                         st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
         
