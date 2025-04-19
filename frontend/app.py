@@ -423,7 +423,7 @@ def render_navbar():
             st.session_state.page = "about"
             st.rerun()
     with col6:
-        if st.button("🚪 Sign Out", key="nav_signout", use_container_width=True):
+        if st.button("🚪 Exit", key="nav_signout", use_container_width=True):
             sign_out()
 
 # Main app logic - Routing between pages
