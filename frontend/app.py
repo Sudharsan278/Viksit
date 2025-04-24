@@ -239,7 +239,26 @@ if "repo_name" not in st.session_state:
 
 # Initialize Firebase app
 try:
-    cred = credentials.Certificate("viksit-9eb2e-firebase-adminsdk-fbsvc-425257ed9a.json")
+    cred = credentials.Certificate({
+        "type": st.secrets["firebase"]["type"],
+        "project_id": st.secrets["firebase"]["project_id"],
+        "private_key_id": st.secrets["firebase"]["private_key_id"],
+        "private_key": st.secrets["firebase"]["private_key"],
+        "client_email": st.secrets["firebase"]["client_email"],
+        "client_id": st.secrets["firebase"]["client_id"],
+        "auth_uri": st.secrets["firebase"]["auth_uri"],
+        "token_uri": st.secrets["firebase"]["token_uri"],
+        "auth_provider_x509_cert_url": st.secrets["firebase"]["auth_provider_x509_cert_url"],
+        "client_x509_cert_url": st.secrets["firebase"]["client_x509_cert_url"],
+        "universe_domain": st.secrets["firebase"]["universe_domain"]
+    })
+    try:
+        firebase_admin.get_app()
+    except ValueError:
+        initialize_app(cred)
+except Exception as e:
+    st.error(f"Firebase initialization error: {e}")
+
     try:
         firebase_admin.get_app()
     except ValueError:
@@ -249,14 +268,14 @@ except Exception as e:
 
 # Initialize Google OAuth2 client
 try:
-    client_id = st.secrets["client_id"]
-    client_secret = st.secrets["client_secret"]
+    # Update to use the correctly nested structure in st.secrets
+    client_id = st.secrets["oauth"]["client_id"]
+    client_secret = st.secrets["oauth"]["client_secret"]
     redirect_url = "http://localhost:8501/"  # Your redirect URL
     client = GoogleOAuth2(client_id=client_id, client_secret=client_secret)
 except Exception as e:
     st.error(f"OAuth client initialization error: {e}")
     client = None
-
 def get_authorization_url():
     try:
         return asyncio.run(client.get_authorization_url(
