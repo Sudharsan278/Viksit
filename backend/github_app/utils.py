@@ -5,6 +5,10 @@ import os
 from django.conf import settings
 import requests
 
+def get_github_token():
+    """Helper function to get GitHub token from environment variable"""
+    return os.environ.get('GITHUB_TOKEN')
+
 def get_groq_llm(model_name="llama3-8b-8192"):
     """Initialize and return a Groq LLM instance"""
     # Retrieve API key from Django settings or environment variable
@@ -68,6 +72,57 @@ def process_repository_query(repository_details, query):
     )
     
     return response
+
+def fetch_repository_details(username, repo_name):
+    """
+    Fetch repository details from GitHub API
+    
+    Args:
+        username (str): GitHub username
+        repo_name (str): Repository name
+        
+    Returns:
+        dict: Repository details
+    """
+    # Get GitHub token
+    token = get_github_token()
+    
+    headers = {}
+    if token:
+        headers['Authorization'] = f'token {token}'
+        
+    url = f'https://api.github.com/repos/{username}/{repo_name}'
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise Exception(f"Error fetching repository details: {response.status_code}")
+
+def fetch_file_content(file_url):
+    """
+    Fetch file content from URL with GitHub token if needed
+    
+    Args:
+        file_url (str): URL to fetch content from
+        
+    Returns:
+        str: File content
+    """
+    headers = {}
+    
+    # Add GitHub token if it's a GitHub URL
+    if 'github.com' in file_url:
+        token = get_github_token()
+        if token:
+            headers['Authorization'] = f'token {token}'
+    
+    response = requests.get(file_url, headers=headers)
+    
+    if response.status_code == 200:
+        return response.text
+    else:
+        raise Exception(f"Error fetching file content: {response.status_code}")
 
 def process_code_query(code_content, query):
     """

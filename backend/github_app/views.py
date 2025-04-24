@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 import requests
-from .models import GithubToken, GoogleSearchAPIKey
+from .models import GoogleSearchAPIKey
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .utils import process_repository_query, process_code_query, process_google_search_results, perform_google_search
@@ -16,13 +16,17 @@ from langchain.prompts import PromptTemplate
 from django.shortcuts import render
 
 
+def get_github_token():
+    """Helper function to get GitHub token from environment variable"""
+    return os.environ.get('GITHUB_TOKEN')
+
+
 @api_view(['GET'])
 def repositories(request, username):
     """Get all repositories for a GitHub user"""
     try:
-
-        token_obj = GithubToken.objects.first()
-        token = token_obj.token if token_obj else None
+        # Get token from environment variable
+        token = get_github_token()
         
         headers = {}
         if token:
@@ -45,8 +49,8 @@ def repositories(request, username):
 def repo_structure(request, username, repo_name):
     """Get the structure of a specific repository with support for subpaths"""
     try:
-        token_obj = GithubToken.objects.first()
-        token = token_obj.token if token_obj else None
+        # Get token from environment variable
+        token = get_github_token()
         
         headers = {}
         if token:
@@ -155,9 +159,14 @@ def query_repository(request):
                 "error": "Username, repository name, and at least one of text query or image are required"
             }, status=400)
         
-        # Fetch repository information from GitHub API
+        # Fetch repository information from GitHub API with token
+        token = get_github_token()
+        headers = {}
+        if token:
+            headers['Authorization'] = f'token {token}'
+            
         repo_url = f"https://api.github.com/repos/{username}/{repo_name}"
-        repo_response = requests.get(repo_url)
+        repo_response = requests.get(repo_url, headers=headers)
         
         if repo_response.status_code != 200:
             return Response({"error": "Repository not found"}, status=404)
@@ -173,11 +182,10 @@ def query_repository(request):
         # Process query using Groq with text and/or image
         response = process_query_with_groq(full_text_query, image_data)
         
-        # Save query and response (without the has_image field)
+        # Save query and response
         GroqQuery.objects.create(
             query=text_query or "Image-based query",
             response=response
-            # has_image field removed
         )
         
         return Response({"response": response})
@@ -205,9 +213,15 @@ def query_code(request):
             if not file_url:
                 return Response({"error": "Either file_content or file_url is required"}, status=400)
             
+            # Fetch file content from URL with GitHub token if it's a GitHub URL
+            token = get_github_token()
+            headers = {}
+            if token and 'github.com' in file_url:
+                headers['Authorization'] = f'token {token}'
+                
             # Fetch file content from URL
             try:
-                file_response = requests.get(file_url)
+                file_response = requests.get(file_url, headers=headers)
                 
                 if file_response.status_code != 200:
                     return Response({"error": "File not found"}, status=404)
@@ -225,11 +239,10 @@ def query_code(request):
         # Process query using Groq with text and/or image
         response = process_query_with_groq(full_text_query, image_data)
         
-        # Save query and response (without the has_image field)
+        # Save query and response
         GroqQuery.objects.create(
             query=text_query or "Image-based query",
             response=response
-            # has_image field removed
         )
         
         return Response({"response": response})
@@ -313,9 +326,14 @@ def resources_page(request):
     # If we have a repo context, try to get additional info
     if username and repo_name:
         try:
-            # Fetch repository information
+            # Fetch repository information with token
+            token = get_github_token()
+            headers = {}
+            if token:
+                headers['Authorization'] = f'token {token}'
+                
             repo_url = f"https://api.github.com/repos/{username}/{repo_name}"
-            repo_response = requests.get(repo_url)
+            repo_response = requests.get(repo_url, headers=headers)
             
             if repo_response.status_code == 200:
                 repo_data = repo_response.json()
@@ -335,9 +353,14 @@ def resources_page(request):
 def get_repo_info(request, username, repo_name):
     """Get repository information for the resources page"""
     try:
-        # Fetch repository information
+        # Fetch repository information with token
+        token = get_github_token()
+        headers = {}
+        if token:
+            headers['Authorization'] = f'token {token}'
+            
         repo_url = f"https://api.github.com/repos/{username}/{repo_name}"
-        repo_response = requests.get(repo_url)
+        repo_response = requests.get(repo_url, headers=headers)
         
         if repo_response.status_code == 200:
             repo_data = repo_response.json()
@@ -390,9 +413,15 @@ def generate_documentation(request):
         if not all([username, repo_name]):
             return Response({"error": "Username and repository name are required"}, status=400)
         
+        # Get GitHub token for API requests
+        token = get_github_token()
+        headers = {}
+        if token:
+            headers['Authorization'] = f'token {token}'
+            
         # Fetch repository information from GitHub API
         repo_url = f"https://api.github.com/repos/{username}/{repo_name}"
-        repo_response = requests.get(repo_url)
+        repo_response = requests.get(repo_url, headers=headers)
         
         if repo_response.status_code != 200:
             return Response({"error": "Repository not found"}, status=404)
@@ -401,7 +430,7 @@ def generate_documentation(request):
         
         # Fetch README if available
         readme_url = f"https://api.github.com/repos/{username}/{repo_name}/readme"
-        readme_response = requests.get(readme_url)
+        readme_response = requests.get(readme_url, headers=headers)
         readme_content = ""
         
         if readme_response.status_code == 200:
@@ -410,7 +439,7 @@ def generate_documentation(request):
         
         # Fetch repository structure for top-level directories
         structure_url = f"https://api.github.com/repos/{username}/{repo_name}/contents"
-        structure_response = requests.get(structure_url)
+        structure_response = requests.get(structure_url, headers=headers)
         structure_info = ""
         
         if structure_response.status_code == 200:

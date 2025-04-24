@@ -9,6 +9,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 DEBUG = True
 ALLOWED_HOSTS = ['*']
 
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 
 INSTALLED_APPS = [
