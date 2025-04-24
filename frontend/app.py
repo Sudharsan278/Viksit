@@ -271,7 +271,7 @@ try:
     # Update to use the correctly nested structure in st.secrets
     client_id = st.secrets["oauth"]["client_id"]
     client_secret = st.secrets["oauth"]["client_secret"]
-    redirect_url = "http://localhost:8501/"  # Your redirect URL
+    redirect_url = "https://viksit-ai.streamlit.app/"  
     client = GoogleOAuth2(client_id=client_id, client_secret=client_secret)
 except Exception as e:
     st.error(f"OAuth client initialization error: {e}")
