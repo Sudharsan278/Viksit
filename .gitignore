@@ -2,3 +2,13 @@ backend/.env
 frontend/.env
 frontend/viksit-9eb2e-firebase-adminsdk-fbsvc-425257ed9a.json
 frontend/.streamlit/secrets.toml
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyc
+backend/backend/db.sqlite3
+# Ignore compiled Python files and local DB
+__pycache__/
+*.pyc
+db.sqlite3

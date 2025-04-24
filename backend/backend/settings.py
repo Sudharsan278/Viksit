@@ -3,11 +3,12 @@ from dotenv import load_dotenv
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-SECRET_KEY = 'your-secret-key'
+load_dotenv()
+
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')  
 DEBUG = True
 ALLOWED_HOSTS = ['*']
 
-load_dotenv()
 GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 
 INSTALLED_APPS = [
