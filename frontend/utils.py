@@ -9,9 +9,14 @@ import json
 BACKEND_URL = "http://localhost:8080/api/"
 
 def load_css(css_file):
-    """Load CSS from a file"""
+    """Load CSS from a file using a more robust path resolution"""
     try:
-        with open(css_file, 'r') as f:
+        # Get the directory of the current file
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        # Build path to CSS file
+        css_path = os.path.join(current_dir, css_file)
+        
+        with open(css_path, 'r') as f:
             return f.read()
     except Exception as e:
         st.error(f"Error loading CSS file: {str(e)}")
