@@ -1,0 +1,4 @@
+firebase_admin==6.8.0
+python-dotenv==1.1.0
+streamlit==1.44.1
+streamlit_lottie==0.0.5

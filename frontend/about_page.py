@@ -537,10 +537,10 @@ def about_page():
     
     # Tech categories
     tech_categories = {
-        "Backend": ["Python", "FastAPI"],
+        "Backend": ["Python", "Django"],
         "Frontend": ["Streamlit"],
         "AI Components": ["Groq API"],
-        "External APIs": ["GitHub API", "Google Custom Search"]
+        "External APIs": ["GitHub API", "Google Custom Search", "Sarvam API"]
     }
     
     # Create a 2x2 grid for tech categories
@@ -589,51 +589,8 @@ def about_page():
     
     # Team Section with enhanced cards
     st.markdown('<div class="section-container">', unsafe_allow_html=True)
-    st.markdown('<h2 class="section-title"> Meet the Team</h2>', unsafe_allow_html=True)
     
-    team_members = [
-        {
-            "name": "Alex Johnson",
-            "title": "Lead Developer",
-            "bio": "Full-stack developer with expertise in Python and web technologies.",
-            "avatar": "https://i.pravatar.cc/300?img=68",
-            "skills": ["Python", "JavaScript", "API Development"]
-        },
-        {
-            "name": "Sarah Williams",
-            "title": "UX Designer",
-            "bio": "Experienced UX designer focused on creating intuitive user interfaces.",
-            "avatar": "https://i.pravatar.cc/300?img=45",
-            "skills": ["UI/UX", "Wireframing", "Prototyping"]
-        },
-        {
-            "name": "Michael Chen",
-            "title": "AI Engineer",
-            "bio": "Specialist in AI integration and natural language processing.",
-            "avatar": "https://i.pravatar.cc/300?img=12",
-            "skills": ["Machine Learning", "NLP", "Python"]
-        }
-    ]
-    
-    cols = st.columns(3)
-    
-    for i, member in enumerate(team_members):
-        with cols[i]:
-            skills_html = "".join([f'<span style="background-color: var(--secondary-bg); padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; margin: 2px; display: inline-block;">{skill}</span>' for skill in member["skills"]])
-            
-            st.markdown(f"""
-            <div class="card team-card" style="text-align: center;">
-                <img src="{member['avatar']}" class="team-avatar" alt="{member['name']}">
-                <h3 class="card-title">{member['name']}</h3>
-                <div style="color: var(--text-secondary);">{member['title']}</div>
-                <p class="card-content">{member['bio']}</p>
-                <div style="margin-top: 10px;">
-                    {skills_html}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-    
+
     # Contact Section with enhanced button
     st.markdown('<div class="section-container">', unsafe_allow_html=True)
     st.markdown('<h2 class="section-title"> Contact</h2>', unsafe_allow_html=True)
