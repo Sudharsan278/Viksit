@@ -6,7 +6,7 @@ import os
 import json
 
 # Constants
-BACKEND_URL = "http://localhost:8080/api/"
+BACKEND_URL = "https://viksit.onrender.com/api/"
 
 def load_css(css_file):
     """Load CSS from a file using a more robust path resolution"""
