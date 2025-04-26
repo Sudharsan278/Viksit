@@ -11,5 +11,4 @@ backend/backend/db.sqlite3
 # Ignore compiled Python files and local DB
 __pycache__/
 *.pyc
-db.sqlite3
 .devcontainer/
