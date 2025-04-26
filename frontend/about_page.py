@@ -18,7 +18,7 @@ def load_lottie_url(url):
 def about_page():
     """About page for GitHub Repository Browser application"""
     
-    # Apply custom styling with animation enhancements
+    # custom styling 
     st.markdown("""
     <style>
     /* Color scheme - GitHub dark theme inspired */
@@ -444,7 +444,7 @@ def about_page():
     # Main Header
     st.markdown('<h1 class="main-header">GitHub Repository Browser</h1>', unsafe_allow_html=True)
     
-    # Multiple Lottie animations
+   
     lottie_urls = {
         "github": "https://assets3.lottiefiles.com/packages/lf20_6e0qqtpa.json",
         "code": "https://assets2.lottiefiles.com/private_files/lf30_wqypnpu5.json",
@@ -455,20 +455,20 @@ def about_page():
     for key, url in lottie_urls.items():
         lottie_animations[key] = load_lottie_url(url)
     
-    # Display main animation with better layout
+    
     if lottie_animations["github"]:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             st_lottie(lottie_animations["github"], height=200, key="github_animation")
     else:
-        # Fallback if animation doesn't load
+        
         st.markdown("""
         <div style="text-align: center; font-size: 3rem; margin: 2rem 0;">
           <span style="color: #58a6ff;">🚀</span>
         </div>
         """, unsafe_allow_html=True)
     
-    # Overview Section
+    
     st.markdown('<div class="section-container">', unsafe_allow_html=True)
     st.markdown('<h2 class="section-title">Overview</h2>', unsafe_allow_html=True)
     
@@ -483,7 +483,7 @@ def about_page():
     """, unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Features Section with animated icons
+    # Features Section 
     st.markdown('<div class="section-container">', unsafe_allow_html=True)
     st.markdown('<h2 class="section-title"> Features</h2>', unsafe_allow_html=True)
     
@@ -523,7 +523,7 @@ def about_page():
             """, unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Add secondary animation
+   
     if lottie_animations["code"]:
         st.markdown('<div class="section-container" style="text-align: center; margin: 2rem 0;">', unsafe_allow_html=True)
         col1, col2, col3 = st.columns([1, 2, 1])
@@ -531,11 +531,10 @@ def about_page():
             st_lottie(lottie_animations["code"], height=150, key="code_animation")
         st.markdown('</div>', unsafe_allow_html=True)
     
-    # Technology Stack Section with simplified layout and improved visual
+    # Tech Stack 
     st.markdown('<div class="section-container">', unsafe_allow_html=True)
     st.markdown('<h2 class="section-title"> Technology Stack</h2>', unsafe_allow_html=True)
     
-    # Tech categories
     tech_categories = {
         "Backend": ["Python", "Django"],
         "Frontend": ["Streamlit"],
@@ -543,7 +542,7 @@ def about_page():
         "External APIs": ["GitHub API", "Google Custom Search", "Sarvam API"]
     }
     
-    # Create a 2x2 grid for tech categories
+    # 2x2 grid 
     row1_col1, row1_col2 = st.columns(2)
     row2_col1, row2_col2 = st.columns(2)
     
@@ -561,7 +560,6 @@ def about_page():
             """, unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Getting Started Section with better visual guide
     st.markdown('<div class="section-container">', unsafe_allow_html=True)
     st.markdown('<h2 class="section-title"> Getting Started</h2>', unsafe_allow_html=True)
     
@@ -587,11 +585,10 @@ def about_page():
     st.markdown('</div>', unsafe_allow_html=True)
     
     
-    # Team Section with enhanced cards
     st.markdown('<div class="section-container">', unsafe_allow_html=True)
     
 
-    # Contact Section with enhanced button
+    # Contact Section 
     st.markdown('<div class="section-container">', unsafe_allow_html=True)
     st.markdown('<h2 class="section-title"> Contact</h2>', unsafe_allow_html=True)
     
@@ -605,7 +602,6 @@ def about_page():
     """, unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Version Information with animated badge
     st.markdown("""
     <div style="text-align: center; margin-top: 2rem;">
         <span class="version-badge">Version 1.0.0</span>
@@ -621,7 +617,7 @@ def about_page():
     </div>
     """, unsafe_allow_html=True)
     
-    # Add JavaScript for scroll reveal effect
+    
     st.markdown("""
     <script>
         // This script will be executed to handle scroll animations

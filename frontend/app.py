@@ -11,19 +11,16 @@ from about_page import about_page
 from community_page import community_page
 import utils
 
-# Page configuration
 st.set_page_config(
-    page_title="Codease Enigma",
+    page_title="VIKSIT.AI",
     page_icon="🔒",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# Load custom CSS
 css = utils.load_css('style.css')
 st.markdown(f'<style>{css}</style>', unsafe_allow_html=True)
 
-# Custom CSS to match the Codease Enigma design
 st.markdown("""
 <style>
     /* Global styles */
@@ -223,7 +220,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize session state variables
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 if 'page' not in st.session_state:
@@ -237,7 +233,6 @@ if "username" not in st.session_state:
 if "repo_name" not in st.session_state:
     st.session_state.repo_name = ""
 
-# Initialize Firebase app
 try:
     cred = credentials.Certificate({
         "type": st.secrets["firebase"]["type"],
@@ -266,16 +261,16 @@ except Exception as e:
 except Exception as e:
     st.error(f"Firebase initialization error: {e}")
 
-# Initialize Google OAuth2 client
 try:
-    # Update to use the correctly nested structure in st.secrets
     client_id = st.secrets["oauth"]["client_id"]
     client_secret = st.secrets["oauth"]["client_secret"]
     redirect_url = "https://viksit-ai.streamlit.app/"  
     client = GoogleOAuth2(client_id=client_id, client_secret=client_secret)
+
 except Exception as e:
     st.error(f"OAuth client initialization error: {e}")
     client = None
+
 def get_authorization_url():
     try:
         return asyncio.run(client.get_authorization_url(
@@ -291,18 +286,13 @@ def check_authentication():
     """Check if we received a code from Google OAuth"""
     code = st.query_params.get('code')
     if code:
-        # We have a code, so we've been redirected back from Google
-        # Clear the code from URL
         st.query_params.clear()
         
-        # Set authenticated to True - skipping actual token verification
-        # since we just want to demonstrate redirection
         st.session_state.authenticated = True
-        st.session_state.page = "main"  # Set to main page
-        st.session_state.username = "user@example.com"  # Placeholder username
-        st.session_state.email = "user@example.com"  # Placeholder email
+        st.session_state.page = "main"  
+        st.session_state.username = "user@example.com"  
+        st.session_state.email = "user@example.com"  
         
-        # Force a rerun to redirect to dashboard
         st.rerun()
 
 def sign_out():
@@ -337,7 +327,7 @@ def landing_page():
     # Hero Section
     st.markdown(
         '<div class="hero-section">'
-        '<h1 class="hero-title">Codease Enigma</h1>'
+        '<h1 class="hero-title">VIKSIT.AI</h1>'
         '<p class="hero-subtitle">Your AI coding guru that explains code and generates documentation for your codebase.</p>'
         '<div class="subscribe-form">'
         '<input type="email" placeholder="Enter your email" class="email-input">'
@@ -347,15 +337,12 @@ def landing_page():
         unsafe_allow_html=True
     )
     
-    # Button to show subscription plans (using Streamlit button instead of JavaScript)
     if st.button("Subscribe", key="subscribe_button", type="primary"):
         show_subscription_plans()
     
-    # Show subscription plans if the button was clicked
     if st.session_state.show_subscription:
         st.markdown('<div class="subscription-container">', unsafe_allow_html=True)
         
-        # Free Tier
         col1, col2, col3 = st.columns(3)
         
         with col1:
@@ -368,10 +355,8 @@ def landing_page():
                 unsafe_allow_html=True
             )
             
-            # Get authorization URL for Google sign-in
             auth_url = get_authorization_url()
             
-            # Add the "Get Plan" button that triggers OAuth flow
             st.markdown(
                 f'<a href="{auth_url}" class="get-plan-button google-signin">'
                 '<svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" style="margin-right: 10px;">'
@@ -414,7 +399,6 @@ def landing_page():
         
         st.markdown('</div>', unsafe_allow_html=True)
     
-    # Check for authentication code in URL parameters
     check_authentication()
 
 # Navigation bar
@@ -447,16 +431,14 @@ def render_navbar():
 
 # Main app logic - Routing between pages
 def main():
-    # Debug
+    
     if st.sidebar.checkbox("Show state"):
         st.sidebar.write(st.session_state)
     
-    # Routing
+    
     if not st.session_state.authenticated:
-        # Show landing page with subscription options
         landing_page()
     else:
-        # User is authenticated, show navigation bar and appropriate page
         render_navbar()
         
         if st.session_state.page == "main":

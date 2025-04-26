@@ -25,14 +25,12 @@ def get_github_token():
 def repositories(request, username):
     """Get all repositories for a GitHub user"""
     try:
-        # Get token from environment variable
         token = get_github_token()
         
         headers = {}
         if token:
             headers['Authorization'] = f'token {token}'
         
-        # Get user repositories
         response = requests.get(f'https://api.github.com/users/{username}/repos', headers=headers)
         
         if response.status_code == 200:
@@ -49,17 +47,14 @@ def repositories(request, username):
 def repo_structure(request, username, repo_name):
     """Get the structure of a specific repository with support for subpaths"""
     try:
-        # Get token from environment variable
         token = get_github_token()
         
         headers = {}
         if token:
             headers['Authorization'] = f'token {token}'
         
-        # Check if a specific path is requested
         path = request.GET.get('path', '')
         
-        # Get repo contents (for the specified path or root level)
         url = f'https://api.github.com/repos/{username}/{repo_name}/contents'
         if path:
             url += f'/{path}'
@@ -69,7 +64,6 @@ def repo_structure(request, username, repo_name):
         if response.status_code == 200:
             contents = response.json()
             
-            # Handle both single file case (dict) and directory (list)
             if not isinstance(contents, list):
                 contents = [contents]
                 
@@ -96,14 +90,11 @@ def repo_structure(request, username, repo_name):
 def encode_image(image_data):
     """Encode image data to base64 string"""
     if isinstance(image_data, str) and os.path.isfile(image_data):
-        # If image_data is a file path
         with open(image_data, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode('utf-8')
     elif not isinstance(image_data, str):
-        # If image_data is binary data
         return base64.b64encode(image_data).decode('utf-8')
     else:
-        # If image_data is already a base64 string, return it directly
         return image_data
 
 
@@ -111,16 +102,12 @@ def process_query_with_groq(text_query, image_data=None):
     """Process a query using Groq, with optional image data"""
     client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
     
-    # Prepare message content
     message_content = []
     
-    # Add text query if provided
     if text_query:
         message_content.append({"type": "text", "text": text_query})
     
-    # Add image data if provided
     if image_data:
-        # Get base64 image - either already encoded or encode it now
         base64_image = encode_image(image_data)
         
         message_content.append({
@@ -130,7 +117,6 @@ def process_query_with_groq(text_query, image_data=None):
             },
         })
     
-    # Create chat completion
     chat_completion = client.chat.completions.create(
         messages=[
             {
@@ -145,21 +131,18 @@ def process_query_with_groq(text_query, image_data=None):
 
 @api_view(['POST'])
 def query_repository(request):
-    """API endpoint to query a repository using Groq with multimodal support"""
     try:
-        # Get data from request
         data = request.data
         username = data.get('username')
         repo_name = data.get('repo_name')
         text_query = data.get('query')
-        image_data = data.get('image')  # Can be base64 encoded string or binary data
+        image_data = data.get('image')
         
         if not all([username, repo_name]) or (not text_query and not image_data):
             return Response({
                 "error": "Username, repository name, and at least one of text query or image are required"
             }, status=400)
         
-        # Fetch repository information from GitHub API with token
         token = get_github_token()
         headers = {}
         if token:
@@ -173,20 +156,10 @@ def query_repository(request):
         
         repo_data = repo_response.json()
         
-        # Prepare the query context with repository information
         repo_context = f"Repository: {repo_data['full_name']}\nDescription: {repo_data['description']}\n"
-        
-        # Combine the repo context with user's text query if provided
         full_text_query = f"{repo_context}\n{text_query}" if text_query else repo_context
         
-        # Process query using Groq with text and/or image
         response = process_query_with_groq(full_text_query, image_data)
-        
-        # Save query and response
-        GroqQuery.objects.create(
-            query=text_query or "Image-based query",
-            response=response
-        )
         
         return Response({"response": response})
     
@@ -196,30 +169,25 @@ def query_repository(request):
 
 @api_view(['POST'])
 def query_code(request):
-    """API endpoint to query a specific code file using Groq with multimodal support"""
     try:
-        # Get data from request
         data = request.data
         file_url = data.get('file_url')
         text_query = data.get('query')
         file_content = data.get('file_content')
-        image_data = data.get('image')  # Can be base64 encoded string or binary data
+        image_data = data.get('image')
         
         if (not text_query and not image_data):
             return Response({"error": "At least one of text query or image is required"}, status=400)
         
-        # Use provided file content if available, otherwise try to fetch from URL
         if not file_content:
             if not file_url:
                 return Response({"error": "Either file_content or file_url is required"}, status=400)
             
-            # Fetch file content from URL with GitHub token if it's a GitHub URL
             token = get_github_token()
             headers = {}
             if token and 'github.com' in file_url:
                 headers['Authorization'] = f'token {token}'
                 
-            # Fetch file content from URL
             try:
                 file_response = requests.get(file_url, headers=headers)
                 
@@ -230,32 +198,19 @@ def query_code(request):
             except Exception as e:
                 return Response({"error": f"Failed to fetch file: {str(e)}"}, status=500)
         
-        # Prepare the query context with code file content
         code_context = f"Code file content:\n{file_content}\n"
-        
-        # Combine the code context with user's text query if provided
         full_text_query = f"{code_context}\n{text_query}" if text_query else code_context
           
-        # Process query using Groq with text and/or image
         response = process_query_with_groq(full_text_query, image_data)
-        
-        # Save query and response
-        GroqQuery.objects.create(
-            query=text_query or "Image-based query",
-            response=response
-        )
         
         return Response({"response": response})
     
     except Exception as e:
         return Response({"error": str(e)}, status=500)
-    
 
 @api_view(['POST'])
 def google_search(request):
-    """API endpoint to perform Google search and enhance results with Groq"""
     try:
-        # Get data from request
         data = request.data
         query = data.get('query')
         username = data.get('username', '')
@@ -265,21 +220,9 @@ def google_search(request):
         if not query:
             return Response({"error": "Search query is required"}, status=400)
         
-        # Try to get Google API credentials from database first
-        api_credentials = GoogleSearchAPIKey.objects.first()
+        api_key = os.environ.get('GOOGLE_API_KEY')
+        cx_id = os.environ.get('GOOGLE_CSE_ID')
         
-        # If not in database, use environment variables as fallback
-        if not api_credentials:
-            api_key = os.environ.get('GOOGLE_API_KEY')
-            cx_id = os.environ.get('GOOGLE_CSE_ID')
-            
-            if not api_key or not cx_id:
-                return Response({"error": "Google Search API credentials not configured"}, status=500)
-        else:
-            api_key = api_credentials.api_key
-            cx_id = api_credentials.cx_id
-        
-        # Perform Google search
         search_results = perform_google_search(
             query=query,
             api_key=api_key,
@@ -287,25 +230,14 @@ def google_search(request):
             num_results=10
         )
         
-        # Process results with Groq
         enhanced_results = process_google_search_results(search_results, query)
-        
-        # Save query and response with repo context if available
-        query_context = f"{search_type}: {query}"
-        if username and repo_name:
-            query_context = f"[{username}/{repo_name}] {query_context}"
-            
-        GroqQuery.objects.create(
-            query=query_context,
-            response=enhanced_results
-        )
         
         return Response({
             "response": enhanced_results,
             "raw_results": search_results.get("items", []),
             "query": query,
             "search_type": search_type,
-            "timestamp": GroqQuery.objects.latest('timestamp').timestamp.isoformat() if GroqQuery.objects.exists() else None
+            "timestamp": None
         })
     
     except Exception as e:
@@ -313,8 +245,6 @@ def google_search(request):
     
 
 def resources_page(request):
-    """Render the resources page template"""
-    # Get repository context from query parameters if available
     username = request.GET.get('username', '')
     repo_name = request.GET.get('repo_name', '')
     
@@ -323,10 +253,8 @@ def resources_page(request):
         'repo_name': repo_name,
     }
     
-    # If we have a repo context, try to get additional info
     if username and repo_name:
         try:
-            # Fetch repository information with token
             token = get_github_token()
             headers = {}
             if token:
@@ -344,16 +272,15 @@ def resources_page(request):
                     'repo_forks': repo_data.get('forks_count', 0)
                 })
         except Exception:
-            # If there's an error, we'll just use the basic context
             pass
     
     return render(request, 'github_app/resources.html', context)
+
 
 @api_view(['GET'])
 def get_repo_info(request, username, repo_name):
     """Get repository information for the resources page"""
     try:
-        # Fetch repository information with token
         token = get_github_token()
         headers = {}
         if token:
@@ -380,14 +307,12 @@ def get_repo_info(request, username, repo_name):
 def search_history(request, count=5):
     """Get recent search history for the resources page"""
     try:
-        # Get most recent queries
         recent_queries = GroqQuery.objects.filter(
             query__startswith="Google Search"
         ).order_by('-timestamp')[:int(count)]
         
         results = []
         for query in recent_queries:
-            # Extract the actual query from the saved query string
             query_text = query.query.replace("Google Search: ", "")
             results.append({
                 'id': query.id,
@@ -405,7 +330,6 @@ def search_history(request, count=5):
 def generate_documentation(request):
     """API endpoint to generate comprehensive documentation for a repository"""
     try:
-        # Get data from request
         data = request.data
         username = data.get('username')
         repo_name = data.get('repo_name')
@@ -413,13 +337,11 @@ def generate_documentation(request):
         if not all([username, repo_name]):
             return Response({"error": "Username and repository name are required"}, status=400)
         
-        # Get GitHub token for API requests
         token = get_github_token()
         headers = {}
         if token:
             headers['Authorization'] = f'token {token}'
             
-        # Fetch repository information from GitHub API
         repo_url = f"https://api.github.com/repos/{username}/{repo_name}"
         repo_response = requests.get(repo_url, headers=headers)
         
@@ -428,7 +350,6 @@ def generate_documentation(request):
         
         repo_data = repo_response.json()
         
-        # Fetch README if available
         readme_url = f"https://api.github.com/repos/{username}/{repo_name}/readme"
         readme_response = requests.get(readme_url, headers=headers)
         readme_content = ""
@@ -437,19 +358,18 @@ def generate_documentation(request):
             readme_data = readme_response.json()
             readme_content = base64.b64decode(readme_data['content']).decode('utf-8')
         
-        # Fetch repository structure for top-level directories
         structure_url = f"https://api.github.com/repos/{username}/{repo_name}/contents"
         structure_response = requests.get(structure_url, headers=headers)
         structure_info = ""
         
         if structure_response.status_code == 200:
             structure_data = structure_response.json()
-            # Format structure information
+
             structure_info = "\nRepository Structure:\n"
             for item in structure_data:
                 structure_info += f"- {item['name']} ({item['type']})\n"
         
-        # Generate documentation using Groq
+        
         documentation = generate_repo_documentation(
             repo_data, 
             readme_content, 
@@ -463,13 +383,11 @@ def generate_documentation(request):
 
 def get_groq_llm(model_name="llama3-8b-8192"):
     """Initialize and return a Groq LLM instance"""
-    # Retrieve API key from environment variable
     api_key = os.environ.get('GROQ_API_KEY')
     
     if not api_key:
         raise ValueError("Groq API key not found. Please set GROQ_API_KEY in environment variables.")
     
-    # Create Groq LLM instance
     llm = ChatGroq(
         groq_api_key=api_key,
         model_name=model_name
@@ -489,10 +407,9 @@ def generate_repo_documentation(repo_data, readme_content, structure_info):
     Returns:
         str: Comprehensive documentation in markdown format
     """
-    # Initialize LLM
     llm = get_groq_llm()
     
-    # Create prompt template
+    # prompt template
     template = """
     You are an AI documentation specialist for GitHub repositories.
     

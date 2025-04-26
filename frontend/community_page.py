@@ -8,7 +8,6 @@ import pandas as pd
 import requests
 import os
 
-# Helper functions
 def generate_default_messages():
     """Generate default messages for the community page"""
     return [
@@ -81,22 +80,19 @@ def translate_text(text, target_language_code):
     Returns:
         str: Translated text
     """
-    # If target language is English or no text to translate, return original text
     if target_language_code == "en-IN" or not text:
         return text
         
     try:
-        # Get API key from environment variables
         api_key = os.environ.get('SARVAM_API_KEY')
         if not api_key:
             st.warning("Sarvam API key not found. Please set SARVAM_API_KEY in environment variables.")
             return text
 
-        # Prepare the request payload as per Sarvam API specs
         url = "https://api.sarvam.ai/translate"
         payload = {
             "input": text,
-            "source_language_code": "en-IN",  # Assuming original text is in English
+            "source_language_code": "en-IN",  
             "target_language_code": target_language_code
         }
         
@@ -105,20 +101,16 @@ def translate_text(text, target_language_code):
             "api-subscription-key": api_key
         }
         
-        # Make API request to Sarvam
         response = requests.post(url, json=payload, headers=headers)
         
         if response.status_code == 200:
             result = response.json()
             return result.get("translated_text", text)
         else:
-            # Return original text if translation fails
             return text
     except Exception as e:
-        # Return original text if translation fails
         return text
 
-# Custom CSS with improved readability and spacing
 def load_css():
     st.markdown("""
     <style>
@@ -542,16 +534,13 @@ def load_css():
     </style>
     """, unsafe_allow_html=True)
 
-# Display messages function with translation capability
 def display_messages(messages, target_language_code):
     """Display messages with optimized styling and translation capability"""
     for idx, msg in enumerate(messages):
         msg_id = f"msg_{msg['id']}"
         
-        # Translate message content if language is not English
         translated_content = translate_text(msg['content'], target_language_code)
         
-        # Render the message card without action buttons
         st.markdown(f"""
         <div class='message-card' id='{msg_id}'>
             <div class='message-header'>
@@ -565,10 +554,9 @@ def display_messages(messages, target_language_code):
         </div>
         """, unsafe_allow_html=True)
         
-        # Display replies if any
         if msg['replies']:
             for reply in msg['replies']:
-                # Translate reply content
+
                 translated_reply = translate_text(reply['content'], target_language_code)
                 
                 st.markdown(f"""
@@ -585,10 +573,8 @@ def display_messages(messages, target_language_code):
                 """, unsafe_allow_html=True)
 
 def community_page():
-    # Load custom CSS
     load_css()
     
-    # Initialize session state
     if "username" not in st.session_state:
         st.session_state.username = "Dev" + str(random.randint(1000, 9999))
     
@@ -599,15 +585,12 @@ def community_page():
         st.session_state.joined_community = False
     
     if "language" not in st.session_state:
-        st.session_state.language = "en-IN"  # Default to English
+        st.session_state.language = "en-IN"  
     
-    # Get supported languages
     languages = get_supported_languages()
     
-    # Translate static UI elements
     lang_code = st.session_state.language
     
-    # Translate static UI elements
     stats_title = translate_text("Community Stats", lang_code)
     members_label = translate_text("Members", lang_code)
     online_label = translate_text("Online", lang_code)
@@ -624,16 +607,14 @@ def community_page():
     comment_placeholder = translate_text("Add your thoughts here...", lang_code)
     comment_button_text = translate_text("Comment", lang_code)
     
-    # Community Stats Section (Full Width)
     st.markdown(f'<div class="section-title">{stats_title}</div>', unsafe_allow_html=True)
     
-    # Stats section with number boxes
     st.markdown('<div class="stats-section">', unsafe_allow_html=True)
     
     cols = st.columns(2)
     
     with cols[0]:
-        # Left stat container with simple number
+       
         st.markdown(f"""
         <div class="stat-container">
             <div class="stat-value">2,453</div>
@@ -642,7 +623,7 @@ def community_page():
         """, unsafe_allow_html=True)
         
     with cols[1]:
-        # Right stat container with simple number
+        
         st.markdown(f"""
         <div class="stat-container">
             <div class="stat-value">187</div>
@@ -652,14 +633,14 @@ def community_page():
     
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Popular Tags Section with new styling
+    
     st.markdown(f'<div class="section-title">{tags_title}</div>', unsafe_allow_html=True)
     
-    # Translate tag names
-    tag_names = ["#Python", "#WebDev", "#ML", "#GitHub", "#JavaScript", "#ReactJS"]
-    translated_tags = [tag if "#" not in tag else tag for tag in tag_names]  # Keep hashtags as is
     
-    # New tags style - directly inline without a containing box
+    tag_names = ["#Python", "#WebDev", "#ML", "#GitHub", "#JavaScript", "#ReactJS"]
+    translated_tags = [tag if "#" not in tag else tag for tag in tag_names]  
+    
+   
     tags_html = '<div class="tags-container">'
     for tag in translated_tags:
         tags_html += f'<div class="tag-pill">{tag}</div>'
@@ -667,10 +648,8 @@ def community_page():
     
     st.markdown(tags_html, unsafe_allow_html=True)
     
-    # Developer Discussions Section
     st.markdown(f'<h2 class="page-title">{discussions_title}</h2>', unsafe_allow_html=True)
     
-    # Join Community Button (Full Width)
     if not st.session_state.joined_community:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
@@ -680,10 +659,8 @@ def community_page():
     else:
         st.success(f"{welcome_text}, {st.session_state.username}!")
     
-    # Language dropdown in place of search bar
     st.markdown(f'<div class="language-dropdown-container">', unsafe_allow_html=True)
     
-    # Use columns to get the dropdown next to the label
     col1, col2 = st.columns([1, 3])
     
     with col1:
@@ -691,24 +668,24 @@ def community_page():
     
     with col2:
         selected_language = st.selectbox(
-            "",  # Empty label since we used custom label above
+            "",  
             options=list(languages.keys()),
             index=list(languages.keys()).index("English" if "English" in languages else list(languages.keys())[0]),
             key="language_dropdown",
-            label_visibility="collapsed"  # Hide the standard label
+            label_visibility="collapsed"  
         )
         
-        # Update language code in session state
+        
         if st.session_state.language != languages[selected_language]:
             st.session_state.language = languages[selected_language]
             st.rerun()
     
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Display messages with translation
+    
     display_messages(st.session_state.community_messages, st.session_state.language)
     
-    # Message input form
+    
     if st.session_state.joined_community:
         new_message = st.text_area("Share your thoughts", height=80, max_chars=500, placeholder=share_placeholder)
         
@@ -716,7 +693,7 @@ def community_page():
         with col2:
             if st.button(post_button_text):
                 if new_message:
-                    # Add new message to the feed
+                    
                     current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
                     new_post = {
                         "id": str(uuid.uuid4()),
@@ -729,41 +706,37 @@ def community_page():
                     st.session_state.community_messages.insert(0, new_post)
                     st.rerun()
     else:
-        st.info(join_info_text)
+        st.info(join_info_text)    
         
-        # Comment section UI for non-members
         st.markdown('<div class="comment-section">', unsafe_allow_html=True)
         st.markdown(f'<div class="comment-header">{comment_header_text}</div>', unsafe_allow_html=True)
         
-        # Create a dictionary of post titles for the dropdown
         post_options = {}
         for msg in st.session_state.community_messages:
-            # Translate the message preview
+           
             display_text = msg['content'][:30] + "..." if len(msg['content']) > 30 else msg['content']
             
-            # If not in English, show original text in dropdown but don't translate - for selection purposes
+            
             post_options[msg['id']] = f"{msg['user']}: {display_text}"
         
-        # Dropdown to select which post to comment on
         selected_post_id = st.selectbox(select_post_text, 
                                         options=list(post_options.keys()),
                                         format_func=lambda x: post_options[x],
                                         key="comment_post_selector")
         
-        # Comment text area with minimum height of 68 pixels to meet Streamlit requirements
+
         comment_text = st.text_area("Your comment", height=68, max_chars=300, 
                                    placeholder=comment_placeholder,
                                    key="comment_textarea")
         
-        # Submit button for comment
+
         col1, col2 = st.columns([4, 1])
         with col2:
             if st.button(comment_button_text):
                 if comment_text:
-                    # Find the selected post
+
                     for msg in st.session_state.community_messages:
                         if msg['id'] == selected_post_id:
-                            # Add new reply to the selected post
                             current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
                             new_reply = {
                                 "user": st.session_state.username,
@@ -776,6 +749,5 @@ def community_page():
         
         st.markdown('</div>', unsafe_allow_html=True)
 
-# Run the app
 if __name__ == "__main__":
     community_page()

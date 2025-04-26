@@ -5,15 +5,11 @@ from urllib.parse import urljoin
 import os
 import json
 
-# Constants
-BACKEND_URL = "https://viksit.onrender.com/api/"
+BACKEND_URL = "http://localhost:8080/api/"
 
 def load_css(css_file):
-    """Load CSS from a file using a more robust path resolution"""
     try:
-        # Get the directory of the current file
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        # Build path to CSS file
         css_path = os.path.join(current_dir, css_file)
         
         with open(css_path, 'r') as f:
@@ -103,14 +99,11 @@ def render_interactive_directory_structure(structure, path_prefix=""):
         item_id = f"tree_{item_path.replace('/', '_')}"
         
         if item["type"] == "dir":
-            # Create a unique key for this folder's state
             folder_key = f"folder_{item_id}"
             
-            # Initialize folder state if not present
             if folder_key not in st.session_state:
                 st.session_state[folder_key] = False
             
-            # Create folder toggle header
             col1, col2 = st.columns([0.05, 0.95])
             with col1:
                 if st.button("➤", key=f"toggle_{folder_key}", help=f"Expand/Collapse {item['name']}"):
@@ -129,17 +122,13 @@ def render_interactive_directory_structure(structure, path_prefix=""):
                     unsafe_allow_html=True
                 )
             
-            # If folder is expanded, load and display children
             if st.session_state[folder_key]:
-                # Create container for folder contents
                 with st.container():
                     st.markdown('<div class="folder-contents">', unsafe_allow_html=True)
                     
                     if "children" in item and item["children"]:
-                        # If we already have children data, use it
                         render_interactive_directory_structure(item["children"], item_path)
                     else:
-                        # Fetch children if not loaded
                         children = get_repo_structure(
                             st.session_state.username, 
                             st.session_state.repo_name, 
@@ -149,25 +138,20 @@ def render_interactive_directory_structure(structure, path_prefix=""):
                         
                     st.markdown('</div>', unsafe_allow_html=True)
         else:
-            # File with click functionality to view content
             file_extension = item['name'].split('.')[-1].lower() if '.' in item['name'] else ''
             icon = get_file_icon(file_extension)
             
-            # Create columns for file item
             col1, col2, col3 = st.columns([0.05, 0.05, 0.9])
             
             with col1:
-                # Empty space for alignment
                 st.write("")
                 
             with col2:
-                # File icon
                 st.markdown(f"<span class='file-icon'>{icon}</span>", unsafe_allow_html=True)
                 
             with col3:
-                # File name as a button but styled to look like text
                 if st.button(f"{item['name']}", key=f"file_{item_id}", help=f"View {item['name']}"):
-                    # Store file path to view content
+
                     st.session_state.file_path = item_path
                     st.session_state.view_file = True
                     st.rerun()
@@ -191,7 +175,6 @@ def get_documentation(username, repo_name):
         str: Markdown-formatted documentation
     """
     try:
-        # Send request to backend
         response = requests.post(
             urljoin(BACKEND_URL, "generate-documentation/"),
             json={
@@ -204,10 +187,8 @@ def get_documentation(username, repo_name):
             result = response.json()
             return result["documentation"]
         else:
-            # Fallback to generate documentation directly
             return generate_documentation_fallback(username, repo_name)
     except Exception as e:
-        # Fallback if backend request fails
         return generate_documentation_fallback(username, repo_name)
 
 def generate_documentation_fallback(username, repo_name):
@@ -222,7 +203,6 @@ def generate_documentation_fallback(username, repo_name):
         str: Markdown-formatted documentation
     """
     try:
-        # Get repository information
         repo_url = f"https://api.github.com/repos/{username}/{repo_name}"
         repo_response = requests.get(repo_url)
         
@@ -231,18 +211,15 @@ def generate_documentation_fallback(username, repo_name):
         
         repo_data = repo_response.json()
         
-        # Get README content if available
         readme_url = f"https://api.github.com/repos/{username}/{repo_name}/readme"
         readme_response = requests.get(readme_url)
         readme_content = ""
         
         if readme_response.status_code == 200:
-            # GitHub returns README content in base64, decode it
             import base64
             readme_data = readme_response.json()
             readme_content = base64.b64decode(readme_data['content']).decode('utf-8')
         
-        # Format documentation
         documentation = f"""# {repo_data.get('name')} Documentation
 
 ## Overview
