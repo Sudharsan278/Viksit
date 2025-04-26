@@ -154,16 +154,35 @@ def query_repository(request):
         
         repo_data = repo_response.json()
         
-        repo_context = f"Repository: {repo_data['full_name']}\nDescription: {repo_data['description']}\n"
-        full_text_query = f"{repo_context}\n{text_query}" if text_query else repo_context
+        contents_url = f"https://api.github.com/repos/{username}/{repo_name}/contents"
+        contents_response = requests.get(contents_url, headers=headers)
+        
+        repo_context = f"Repository: {repo_data['full_name']}\nDescription: {repo_data['description'] or 'No description'}\n"
+        
+        if contents_response.status_code == 200:
+            contents = contents_response.json()
+            repo_context += "\nRepository structure:\n"
+            for item in contents:
+                repo_context += f"- {item['name']} ({item['type']})\n"
+        
+        readme_url = f"https://api.github.com/repos/{username}/{repo_name}/readme"
+        try:
+            readme_response = requests.get(readme_url, headers=headers)
+            if readme_response.status_code == 200:
+                readme_data = readme_response.json()
+                readme_content = base64.b64decode(readme_data['content']).decode('utf-8')
+                repo_context += f"\nREADME content:\n{readme_content[:1000]}..."  
+        except Exception:
+            pass  
+
+        full_text_query = f"{repo_context}\n\nUser query: {text_query}" if text_query else repo_context
         
         response = process_query_with_groq(full_text_query, image_data)
         
         return Response({"response": response})
     
     except Exception as e:
-        return Response({"error": str(e)}, status=500)
-    
+        return Response({"error": str(e)}, status=500)    
 
 @api_view(['POST'])
 def query_code(request):

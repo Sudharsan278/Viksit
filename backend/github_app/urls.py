@@ -9,8 +9,6 @@ urlpatterns = [
     path('google-search/', views.google_search, name='google_search'),
     path('resources/', views.resources_page, name='resources_page'),
     path('repo-info/<str:username>/<str:repo_name>/', views.get_repo_info, name='get_repo_info'),
-    path('search-history/', views.search_history, name='search_history'),
-    path('search-history/<int:count>/', views.search_history, name='search_history_with_count'),
     path('generate-documentation/', views.generate_documentation, name='generate_documentation'),
 
 ]
