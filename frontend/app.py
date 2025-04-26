@@ -350,32 +350,34 @@ body::before {
     .st-emotion-cache-seewz2 .multilingual span {
         font-size: 20px !important;
     }
-    /* Custom styling for the Explore Plans button */
-div[data-testid="stButton"] {
-    display: flex;
-    justify-content: center;
-    margin-top: 20px;
-}
+    
+    /* Custom styling for the Explore Plans button - centered */
+    .center-button {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+    }
+    
+    .center-button button {
+        background: linear-gradient(135deg, #6441a5, #9c27b0) !important;
+        color: white !important;
+        padding: 12px 35px !important;
+        border-radius: 50px !important;
+        border: none !important;
+        font-weight: bold !important;
+        font-size: 18px !important;
+        letter-spacing: 0.5px !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2) !important;
+        min-width: 200px !important;
+    }
 
-div[data-testid="stButton"] button {
-    background: linear-gradient(135deg, #6441a5, #9c27b0) !important;
-    color: white !important;
-    padding: 12px 35px !important;
-    border-radius: 50px !important;
-    border: none !important;
-    font-weight: bold !important;
-    font-size: 18px !important;
-    letter-spacing: 0.5px !important;
-    transition: all 0.3s ease !important;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2) !important;
-    min-width: 200px !important;
-}
-
-div[data-testid="stButton"] button:hover {
-    background: linear-gradient(135deg, #7e57c2, #b039c3) !important;
-    box-shadow: 0 5px 20px rgba(124, 77, 255, 0.4) !important;
-    transform: translateY(-2px) !important;
-}
+    .center-button button:hover {
+        background: linear-gradient(135deg, #7e57c2, #b039c3) !important;
+        box-shadow: 0 5px 20px rgba(124, 77, 255, 0.4) !important;
+        transform: translateY(-2px) !important;
+    }
+    
     /* Form styles */
     .subscribe-form {
         display: flex;
@@ -600,15 +602,15 @@ div[data-testid="stButton"] button:hover {
         transform: translateY(-2px) scale(1.03);
     }
     
-    /* Navigation bar */
-    .stButton button {
-        background-color: rgba(30, 30, 40, 0.7) !important;
+    /* Navigation bar - FIXED: removing pink background */
+    .nav-bar-container button {
+        background-color: transparent !important;
         border: 1px solid rgba(124, 77, 255, 0.2) !important;
         color: white !important;
         transition: all 0.3s ease !important;
     }
     
-    .stButton button:hover {
+    .nav-bar-container button:hover {
         background-color: rgba(124, 77, 255, 0.2) !important;
         border-color: rgba(124, 77, 255, 0.5) !important;
         transform: translateY(-2px) !important;
@@ -655,13 +657,6 @@ try:
         "client_x509_cert_url": st.secrets["firebase"]["client_x509_cert_url"],
         "universe_domain": st.secrets["firebase"]["universe_domain"]
     })
-    try:
-        firebase_admin.get_app()
-    except ValueError:
-        initialize_app(cred)
-except Exception as e:
-    st.error(f"Firebase initialization error: {e}")
-
     try:
         firebase_admin.get_app()
     except ValueError:
@@ -740,9 +735,13 @@ def landing_page():
         unsafe_allow_html=True
     )
     
-    # Button to show subscription plans (using Streamlit button instead of JavaScript)
-    if st.button("Explore plans", key="subscribe_button", type="primary"):
-        show_subscription_plans()
+    # Button to show subscription plans - Center just this button
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown('<div class="center-button">', unsafe_allow_html=True)
+        if st.button("Explore plans", key="subscribe_button", type="primary"):
+            show_subscription_plans()
+        st.markdown('</div>', unsafe_allow_html=True)
     
     # Show subscription plans if the button was clicked
     if st.session_state.show_subscription:
