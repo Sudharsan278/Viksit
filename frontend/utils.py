@@ -5,7 +5,7 @@ from urllib.parse import urljoin
 import os
 import json
 
-BACKEND_URL = "http://localhost:8080/api/"
+BACKEND_URL = "https://viksit.onrender.com/api/"
 
 def load_css(css_file):
     try:
