@@ -25,73 +25,84 @@ st.markdown("""
 <style>
     /* Global styles */
     body {
-        background-color: #0e1117;
         color: white;
         font-family: 'Inter', sans-serif;
+        background-color: #0e1117;
     }
     
-    /* Floating code background */
-    body::before {
-        content: "";
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: -1;
-        background-color: rgba(14, 17, 23, 0.95);
-        background-image: 
-            repeating-linear-gradient(rgba(124, 77, 255, 0.05) 0px, transparent 2px, transparent 4px),
-            radial-gradient(rgba(124, 77, 255, 0.05) 1px, transparent 2px);
-        background-size: 100% 4px, 30px 30px;
-        pointer-events: none;
+    
+/* Floating code background */
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    background-color: rgba(14, 17, 23, 0.95);
+    background-image: 
+        repeating-linear-gradient(rgba(124, 77, 255, 0.05) 0px, transparent 2px, transparent 4px),
+        radial-gradient(rgba(124, 77, 255, 0.05) 1px, transparent 2px);
+    background-size: 100% 4px, 30px 30px;
+    pointer-events: none;
+}
+
+/* Add floating code snippets */
+.floating-code {
+    position: fixed;
+    color: rgba(124, 77, 255, 0.15);
+    font-family: monospace;
+    font-size: 14px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: -1;
+    text-shadow: 0 0 5px rgba(124, 77, 255, 0.2);
+    animation: float-up 60s linear infinite;
+}
+
+.floating-code:nth-child(1) { top: 15%; left: 10%; animation-duration: 80s; }
+.floating-code:nth-child(2) { top: 35%; left: 5%; animation-duration: 120s; animation-delay: -20s; }
+.floating-code:nth-child(3) { top: 60%; left: 15%; animation-duration: 90s; animation-delay: -15s; }
+.floating-code:nth-child(4) { top: 25%; right: 10%; animation-duration: 110s; animation-delay: -30s; }
+.floating-code:nth-child(5) { top: 70%; right: 15%; animation-duration: 100s; animation-delay: -10s; }
+.floating-code:nth-child(6) { top: 45%; right: 5%; animation-duration: 85s; animation-delay: -25s; }
+
+@keyframes float-up {
+    0% {
+        transform: translateY(100vh) rotate(5deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-100vh) rotate(-5deg);
+        opacity: 0;
+    }
+}
+    
+    /* App background */
+    .stApp {
+        background-color: #0e1117;
     }
     
-    /* Add floating code snippets */
-    .floating-code {
-        position: fixed;
-        color: rgba(124, 77, 255, 0.15);
-        font-family: monospace;
-        font-size: 14px;
-        white-space: nowrap;
-        pointer-events: none;
-        z-index: -1;
-        text-shadow: 0 0 5px rgba(124, 77, 255, 0.2);
-        animation: float-up 60s linear infinite;
-    }
-    
-    .floating-code:nth-child(1) { top: 15%; left: 10%; animation-duration: 80s; }
-    .floating-code:nth-child(2) { top: 35%; left: 5%; animation-duration: 120s; animation-delay: -20s; }
-    .floating-code:nth-child(3) { top: 60%; left: 15%; animation-duration: 90s; animation-delay: -15s; }
-    .floating-code:nth-child(4) { top: 25%; right: 10%; animation-duration: 110s; animation-delay: -30s; }
-    .floating-code:nth-child(5) { top: 70%; right: 15%; animation-duration: 100s; animation-delay: -10s; }
-    .floating-code:nth-child(6) { top: 45%; right: 5%; animation-duration: 85s; animation-delay: -25s; }
-    
-    @keyframes float-up {
-        0% {
-            transform: translateY(100vh) rotate(5deg);
-            opacity: 0;
-        }
-        10% {
-            opacity: 1;
-        }
-        90% {
-            opacity: 1;
-        }
-        100% {
-            transform: translateY(-100vh) rotate(-5deg);
-            opacity: 0;
-        }
-    }
-    
-    /* Header styles */
     .main-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 20px 0;
+        padding: 20px 30px;
+        background: rgba(30, 30, 40, 0.7);
+        border-radius: 12px;
+        border: 1px solid rgba(124, 77, 255, 0.3);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        margin-bottom: 30px;
     }
-    
+
     .logo {
         font-size: 28px;
         font-weight: bold;
@@ -104,18 +115,18 @@ st.markdown("""
         background-clip: text;
         transition: all 0.3s ease;
     }
-    
+
     .logo:hover {
         transform: scale(1.05);
         text-shadow: 0 0 15px rgba(124, 77, 255, 0.9);
     }
-    
+
     .nav-links {
         display: flex;
         align-items: center;
         gap: 25px;
     }
-    
+
     .nav-link {
         color: white;
         text-decoration: none;
@@ -126,12 +137,11 @@ st.markdown("""
         transition: all 0.3s ease;
         position: relative;
     }
-    
-    .nav-link:hover {
+        .nav-link:hover {
         color: #9c27b0;
         background: rgba(255, 255, 255, 0.1);
     }
-    
+
     .nav-link::after {
         content: '';
         position: absolute;
@@ -143,12 +153,57 @@ st.markdown("""
         transition: all 0.3s ease;
         transform: translateX(-50%);
     }
-    
+
     .nav-link:hover::after {
         width: 80%;
     }
     
-    /* Hero section */
+    /* Enhanced navbar */
+    .navbar {
+        background: rgba(30, 30, 40, 0.7);
+        border-radius: 12px;
+        padding: 8px;
+        margin-bottom: 20px;
+        border: 1px solid rgba(124, 77, 255, 0.3);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    .navbar-btn {
+        background: transparent;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 15px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    
+    .navbar-btn:hover {
+        background: rgba(124, 77, 255, 0.2);
+        transform: translateY(-2px);
+    }
+    
+    .navbar-btn.active {
+        background: linear-gradient(135deg, rgba(100, 65, 165, 0.3), rgba(156, 39, 176, 0.3));
+        box-shadow: 0 0 15px rgba(124, 77, 255, 0.3);
+    }
+    
+    .navbar-btn.exit {
+        background: rgba(200, 50, 70, 0.2);
+    }
+    
+    .navbar-btn.exit:hover {
+        background: rgba(200, 50, 70, 0.3);
+    }
+    
+    /* Hero section with enhanced typography */
     .hero-section {
         display: flex;
         flex-direction: column;
@@ -161,7 +216,32 @@ st.markdown("""
         z-index: 10;
     }
     
-    /* Add the typing animation */
+        .brand-title {
+        font-size: 80px;
+        font-weight: bold;
+        background: linear-gradient(90deg, #9c27b0, #7b1fa2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: 0 0 20px rgba(124, 77, 255, 0.3);
+        letter-spacing: 2px;
+        margin-bottom: 10px;
+        position: relative;
+        display: inline-block;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        padding: 10px 20px;
+        border-radius: 15px;
+    }
+    
+    .brand-title:hover {
+        background: #9c27b0;
+        -webkit-text-fill-color: white;
+        text-shadow: 0 0 30px rgba(124, 77, 255, 0.7);
+    }
+    */
+    
+    /* Add the typing animation styles from the first file */
     .typing-container {
         display: inline-block;
         margin-bottom: 20px;
@@ -185,13 +265,19 @@ st.markdown("""
             typing 8s steps(14, end) infinite forwards,
             blink-caret 0.75s step-end infinite;
     }
-    
     .typing-text:hover {
-        text-shadow: 0 0 30px rgba(156, 39, 176, 0.8);
-        letter-spacing: 3px;
-        transform: scale(1.05);
-    }
-    
+    text-shadow: 0 0 30px rgba(156, 39, 176, 0.8);
+    letter-spacing: 3px;
+    transform: scale(1.05);
+}
+.multilingual:hover span {
+    text-shadow: 0 0 15px rgba(156, 39, 176, 0.8);
+    transform: translateY(0) scale(1.1) !important;
+}
+.tagline:hover {
+    text-shadow: 0 0 20px rgba(156, 39, 176, 0.7);
+    letter-spacing: 1.2px;
+}
     @keyframes typing {
         0% { width: 0; }
         50% { width: 100%; }
@@ -211,6 +297,8 @@ st.markdown("""
         color: white;
     }
     
+
+    /* Clean sequential language rotation with no overlap */
     .multilingual {
         position: relative;
         display: inline-block;
@@ -220,50 +308,74 @@ st.markdown("""
         vertical-align: middle;
         overflow: hidden;
     }
-    
+
     .multilingual span {
+        color: #9c27b0;
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
         opacity: 0;
-        animation: rotate-languages 15s linear infinite;
         width: 100%;
         display: block;
         text-align: center;
         font-size: 34px !important;
-        color: #9c27b0;
     }
-    
-    .multilingual:hover span {
-        text-shadow: 0 0 15px rgba(156, 39, 176, 0.8);
-        transform: translateY(0) scale(1.1) !important;
+
+    /* Using a single animation for all spans with specific delays */
+    .multilingual span {
+        animation: rotate-single-language 16s ease-in-out infinite;
     }
-    
-    .tagline:hover {
-        text-shadow: 0 0 20px rgba(156, 39, 176, 0.7);
-        letter-spacing: 1.2px;
-    }
-    
+
     .multilingual span:nth-child(1) { animation-delay: 0s; }
-    .multilingual span:nth-child(2) { animation-delay: 3s; }
-    .multilingual span:nth-child(3) { animation-delay: 6s; }
-    .multilingual span:nth-child(4) { animation-delay: 9s; }
-    .multilingual span:nth-child(5) { animation-delay: 12s; }
-    
-    @keyframes rotate-languages {
-        0%, 16%, 100% { opacity: 0; transform: translateY(20px); }
-        4%, 12% { opacity: 1; transform: translateY(0); }
+    .multilingual span:nth-child(2) { animation-delay: 4s; }
+    .multilingual span:nth-child(3) { animation-delay: 8s; }
+    .multilingual span:nth-child(4) { animation-delay: 12s; }
+
+    @keyframes rotate-single-language {
+        0%, 1%, 24%, 100% { 
+            opacity: 0; 
+            transform: translateY(20px); 
+        }
+        3%, 22% { 
+            opacity: 1; 
+            transform: translateY(0); 
+        }
     }
-    
-    .hero-subtitle {
-        color: #ffffff;
-        font-size: 38px;
-        margin-bottom: 30px;
-        max-width: 600px;
-        line-height: 1.6;
+            
+
+    /* Override Streamlit's default text styling */
+    .st-emotion-cache-seewz2 p,
+    .st-emotion-cache-seewz2 .tagline,
+    .st-emotion-cache-seewz2 .multilingual span {
+        font-size: 20px !important;
     }
-    
+    /* Custom styling for the Explore Plans button */
+div[data-testid="stButton"] {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+div[data-testid="stButton"] button {
+    background: linear-gradient(135deg, #6441a5, #9c27b0) !important;
+    color: white !important;
+    padding: 12px 35px !important;
+    border-radius: 50px !important;
+    border: none !important;
+    font-weight: bold !important;
+    font-size: 18px !important;
+    letter-spacing: 0.5px !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2) !important;
+    min-width: 200px !important;
+}
+
+div[data-testid="stButton"] button:hover {
+    background: linear-gradient(135deg, #7e57c2, #b039c3) !important;
+    box-shadow: 0 5px 20px rgba(124, 77, 255, 0.4) !important;
+    transform: translateY(-2px) !important;
+}
     /* Form styles */
     .subscribe-form {
         display: flex;
@@ -303,33 +415,6 @@ st.markdown("""
         background: linear-gradient(135deg, #7e57c2, #b039c3);
         box-shadow: 0 0 15px rgba(124, 77, 255, 0.5);
         transform: translateY(-2px);
-    }
-    
-    /* Custom styling for the Explore Plans button */
-    div[data-testid="stButton"] {
-        display: flex;
-        justify-content: center;
-        margin-top: 20px;
-    }
-    
-    div[data-testid="stButton"] button {
-        background: linear-gradient(135deg, #6441a5, #9c27b0) !important;
-        color: white !important;
-        padding: 12px 35px !important;
-        border-radius: 50px !important;
-        border: none !important;
-        font-weight: bold !important;
-        font-size: 18px !important;
-        letter-spacing: 0.5px !important;
-        transition: all 0.3s ease !important;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2) !important;
-        min-width: 200px !important;
-    }
-    
-    div[data-testid="stButton"] button:hover {
-        background: linear-gradient(135deg, #7e57c2, #b039c3) !important;
-        box-shadow: 0 5px 20px rgba(124, 77, 255, 0.4) !important;
-        transform: translateY(-2px) !important;
     }
     
     /* Subscription plans */
@@ -506,61 +591,42 @@ st.markdown("""
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         display: inline-block;
         text-align: center;
-        margin-left: 20px;
+        margin-left:77px;
     }
-    
+
     .sign-up-button:hover {
         background: linear-gradient(135deg, #7e57c2, #b039c3);
         box-shadow: 0 5px 20px rgba(124, 77, 255, 0.4);
         transform: translateY(-2px) scale(1.03);
     }
     
-    /* Enhanced navbar */
-    .navbar {
-        background: rgba(30, 30, 40, 0.7);
-        border-radius: 12px;
-        padding: 8px;
-        margin-bottom: 20px;
-        border: 1px solid rgba(124, 77, 255, 0.3);
-        backdrop-filter: blur(10px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    /* Navigation bar */
+    .stButton button {
+        background-color: rgba(30, 30, 40, 0.7) !important;
+        border: 1px solid rgba(124, 77, 255, 0.2) !important;
+        color: white !important;
+        transition: all 0.3s ease !important;
     }
     
-    .navbar-btn {
-        background: transparent;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 8px;
-        font-weight: 500;
-        font-size: 15px;
-        transition: all 0.3s ease;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
+    .stButton button:hover {
+        background-color: rgba(124, 77, 255, 0.2) !important;
+        border-color: rgba(124, 77, 255, 0.5) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2) !important;
     }
     
-    .navbar-btn:hover {
-        background: rgba(124, 77, 255, 0.2);
-        transform: translateY(-2px);
-    }
-    
-    .navbar-btn.active {
-        background: linear-gradient(135deg, rgba(100, 65, 165, 0.3), rgba(156, 39, 176, 0.3));
-        box-shadow: 0 0 15px rgba(124, 77, 255, 0.3);
-    }
-    
-    .navbar-btn.exit {
-        background: rgba(200, 50, 70, 0.2);
-    }
-    
-    .navbar-btn.exit:hover {
-        background: rgba(200, 50, 70, 0.3);
+    /* Hero subtitle for better visibility */
+    .hero-subtitle {
+        color: #ffffff;
+        font-size: 38px;
+        margin-bottom: 30px;
+        max-width: 600px;
+        line-height: 1.6;
     }
 </style>
+
 """, unsafe_allow_html=True)
+
 
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
@@ -589,6 +655,13 @@ try:
         "client_x509_cert_url": st.secrets["firebase"]["client_x509_cert_url"],
         "universe_domain": st.secrets["firebase"]["universe_domain"]
     })
+    try:
+        firebase_admin.get_app()
+    except ValueError:
+        initialize_app(cred)
+except Exception as e:
+    st.error(f"Firebase initialization error: {e}")
+
     try:
         firebase_admin.get_app()
     except ValueError:
@@ -648,14 +721,7 @@ def landing_page():
     # Header
     col1, col2, col3 = st.columns([1, 2, 1])
     with col1:
-        st.markdown('<div class="logo">Turning Code into Clarity</div>', unsafe_allow_html=True)
-    with col3:
-        st.markdown(
-            '<div class="nav-links">'
-            '</div>',
-            unsafe_allow_html=True
-        )
-    
+        st.markdown('<div class="logo">Turning code into clarity!</div>', unsafe_allow_html=True)
     st.markdown(
         '''
         <div class="hero-section">
@@ -666,7 +732,6 @@ def landing_page():
                 <span>INDIA</span>
                 <span>ভাৰত</span>
                 <span>ଭାରତ</span>
-                <span>இந்தியா</span>
                 <span>భారత్</span>
             </span>, for the World!</p>
             <p class="hero-subtitle">Your AI coding guru that explains code and generates documentation for your codebase.</p>
@@ -675,60 +740,57 @@ def landing_page():
         unsafe_allow_html=True
     )
     
-    if st.button("Subscribe", key="subscribe_button", type="primary"):
+    # Button to show subscription plans (using Streamlit button instead of JavaScript)
+    if st.button("Explore plans", key="subscribe_button", type="primary"):
         show_subscription_plans()
     
+    # Show subscription plans if the button was clicked
     if st.session_state.show_subscription:
         st.markdown('<div class="subscription-container">', unsafe_allow_html=True)
         
+        # Free Tier
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.markdown(
-                '<div class="subscription-card">'
-                '<span class="plan-badge">POPULAR</span>'
-                '<h3 class="plan-title">Free Tier</h3>'
-                '<p class="plan-price">$0<span>/mo</span></p>'
-                '<p class="plan-description">Get started with basic features. Perfect for beginners and casual users.</p>'
-                '<div class="plan-features">'
-                '<div class="feature-item"><span class="feature-icon">✓</span> Basic code analysis</div>'
-                '<div class="feature-item"><span class="feature-icon">✓</span> Limited repository access</div>'
-                '<div class="feature-item"><span class="feature-icon">✓</span> Community support</div>'
-                '</div>'
-                '</div>',
-                unsafe_allow_html=True
-            )
-            
             auth_url = get_authorization_url()
-            
             st.markdown(
-                f'<a href="{auth_url}" class="get-plan-button google-signin">'
-                '<svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" style="margin-right: 10px;">'
-                '<path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12'
-                's5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20'
-                's20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>'
-                '<path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039'
-                'l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>'
-                '<path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36'
-                'c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>'
-                '<path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571'
-                'c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>'
-                '</svg>'
-                'Get Free Plan'
-                '</a>',
-                unsafe_allow_html=True
-            )
-        
+        '<div class="subscription-card">'
+        '<span class="plan-badge">POPULAR</span>'
+        '<h3 class="plan-title">FREE TIER</h3>'
+        '<p class="plan-price">$0<span>/month</span></p>'
+        '<p class="plan-description">Get started with basic features. Perfect for beginners and casual users.</p>'
+        '<div class="plan-features">'
+        '<div class="feature-item"><span class="feature-icon">✓</span> Basic code analysis</div>'
+        '<div class="feature-item"><span class="feature-icon">✓</span> Limited repository access</div>'
+        '<div class="feature-item"><span class="feature-icon">✓</span> Community support</div>'
+        '</div>'
+        f'<a href="{auth_url}" class="get-plan-button google-signin">'
+        '<svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" style="margin-right: 10px;">'
+        '<path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12'
+        's5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20'
+        's20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path>'
+        '<path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039'
+        'l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path>'
+        '<path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36'
+        'c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path>'
+        '<path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571'
+        'c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>'
+        '</svg>'
+        'Get Free Plan'
+        '</a>'
+        '</div>',
+        unsafe_allow_html=True
+    )
+            
         with col2:
             st.markdown(
                 '<div class="subscription-card">'
-                '<h3 class="plan-title">Socially Backward</h3>'
-                '<p class="plan-price">$9<span>/mo</span></p>'
-                '<p class="plan-description">Advanced features for small teams. Includes premium support and extended functionality.</p>'
+                '<h3 class="plan-title">SOCIALLY BACKWARDS</h3>'
+                '<p class="plan-price">$9<span>/month</span></p>'
+                '<p class="plan-description">Advanced features for small teams. Includes premium support and functionality</p>'
                 '<div class="plan-features">'
                 '<div class="feature-item"><span class="feature-icon">✓</span> Advanced code analysis</div>'
-                '<div class="feature-item"><span class="feature-icon">✓</span> Unlimited repositories</div>'
-                '<div class="feature-item"><span class="feature-icon">✓</span> Custom documentation</div>'
+                '<div class="feature-item"><span class="feature-icon">✓</span> Unlimited repositories</div>'                '<div class="feature-item"><span class="feature-icon">✓</span> Custom documentation</div>'
                 '</div>'
                 '<a href="#" class="get-plan-button">Coming Soon</a>'
                 '</div>',
@@ -755,59 +817,44 @@ def landing_page():
         
         st.markdown('</div>', unsafe_allow_html=True)
     
+    # Check for authentication code in URL parameters
     check_authentication()
 
-
+# Navigation bar
 def render_navbar():
-    st.markdown('''
-    <div class="navbar">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <button class="navbar-btn" onclick="document.querySelector('#nav_repo_button').click();">
-                <span>📊 Repository</span>
-            </button>
-            <button class="navbar-btn" onclick="document.querySelector('#nav_resources_button').click();">
-                <span>📚 Resources</span>
-            </button>
-            <button class="navbar-btn" onclick="document.querySelector('#nav_code_editor_button').click();">
-                <span>💻 Code Editor</span>
-            </button>
-            <button class="navbar-btn" onclick="document.querySelector('#nav_community_button').click();">
-                <span>👥 Community</span>
-            </button>
-            <button class="navbar-btn" onclick="document.querySelector('#nav_about_button').click();">
-                <span>ℹ️ About</span>
-            </button>
-            <button class="navbar-btn exit" onclick="document.querySelector('#nav_signout_button').click();">
-                <span>🚪 Exit</span>
-            </button>
-        </div>
-    </div>
-    ''', unsafe_allow_html=True)
+    col1, col2, col3, col4, col5, col6 = st.columns([2, 2, 2, 2, 2, 1])
     
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
     with col1:
-        st.button("Repo", key="nav_repo_button", on_click=lambda: set_page("repo_structure"))
+        if st.button("📊 Repository", key="nav_repo", use_container_width=True):
+            st.session_state.page = "repo_structure"
+            st.rerun()
     with col2:
-        st.button("Resources", key="nav_resources_button", on_click=lambda: set_page("resources"))
+        if st.button("📚 Resources", key="nav_resources", use_container_width=True):
+            st.session_state.page = "resources"
+            st.rerun()
     with col3:
-        st.button("Code Editor", key="nav_code_editor_button", on_click=lambda: set_page("code_editor"))
+        if st.button("💻 Code Editor", key="nav_code_editor", use_container_width=True):
+            st.session_state.page = "code_editor"
+            st.rerun()
     with col4:
-        st.button("Community", key="nav_community_button", on_click=lambda: set_page("community"))
+        if st.button("👥 Community", key="nav_community", use_container_width=True):
+            st.session_state.page = "community"
+            st.rerun()
     with col5:
-        st.button("About", key="nav_about_button", on_click=lambda: set_page("about"))
+        if st.button("ℹ️ About", key="nav_about", use_container_width=True):
+            st.session_state.page = "about"
+            st.rerun()
     with col6:
-        st.button("Sign Out", key="nav_signout_button", on_click=sign_out)
+        if st.button("🚪 Exit", key="nav_signout", use_container_width=True):
+            sign_out()
 
-def set_page(page_name):
-    st.session_state.page = page_name
-    st.rerun()
-
+# Main app logic - Routing between pages
 def main():
-    with st.sidebar:
-        if st.checkbox("Show debug info", key="debug"):
-            st.write(st.session_state)
     
-    # Routing
+    if st.sidebar.checkbox("Show state"):
+        st.sidebar.write(st.session_state)
+    
+    
     if not st.session_state.authenticated:
         landing_page()
     else:
