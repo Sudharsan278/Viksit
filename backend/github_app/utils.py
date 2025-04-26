@@ -11,13 +11,11 @@ def get_github_token():
 
 def get_groq_llm(model_name="llama3-8b-8192"):
     """Initialize and return a Groq LLM instance"""
-    # Retrieve API key from Django settings or environment variable
     api_key = getattr(settings, 'GROQ_API_KEY', os.environ.get('GROQ_API_KEY'))
     
     if not api_key:
         raise ValueError("Groq API key not found. Please set GROQ_API_KEY in environment variables or settings.")
     
-    # Create Groq LLM instance
     llm = ChatGroq(
         groq_api_key=api_key,
         model_name=model_name
@@ -182,18 +180,17 @@ def process_google_search_results(search_results, query):
     # Initialize LLM
     llm = get_groq_llm()
     
-    # Extract relevant information from search results
     items = search_results.get('items', [])
     formatted_results = []
     
-    for item in items[:5]:  # Limit to first 5 results for prompt size
+    for item in items[:5]:  
         formatted_results.append({
             'title': item.get('title', ''),
             'link': item.get('link', ''),
             'snippet': item.get('snippet', '')
         })
     
-    # Convert to string representation
+    
     results_text = ""
     for i, result in enumerate(formatted_results, 1):
         results_text += f"Result {i}:\n"
@@ -201,7 +198,7 @@ def process_google_search_results(search_results, query):
         results_text += f"Link: {result['link']}\n"
         results_text += f"Snippet: {result['snippet']}\n\n"
     
-    # Create prompt template
+    # prompt template
     template = """
     You are an AI research assistant that helps format and enhance search results.
     

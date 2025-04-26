@@ -1,10 +1,8 @@
 from django.http import JsonResponse
 import requests
-from .models import GoogleSearchAPIKey
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .utils import process_repository_query, process_code_query, process_google_search_results, perform_google_search
-from .models import GroqQuery
 import requests
 import json
 import os
@@ -299,29 +297,6 @@ def get_repo_info(request, username, repo_name):
             })
         else:
             return Response({"error": "Repository not found"}, status=404)
-    
-    except Exception as e:
-        return Response({"error": str(e)}, status=500)
-
-@api_view(['GET'])
-def search_history(request, count=5):
-    """Get recent search history for the resources page"""
-    try:
-        recent_queries = GroqQuery.objects.filter(
-            query__startswith="Google Search"
-        ).order_by('-timestamp')[:int(count)]
-        
-        results = []
-        for query in recent_queries:
-            query_text = query.query.replace("Google Search: ", "")
-            results.append({
-                'id': query.id,
-                'query': query_text,
-                'response': query.response,
-                'timestamp': query.timestamp.isoformat()
-            })
-        
-        return Response({"history": results})
     
     except Exception as e:
         return Response({"error": str(e)}, status=500)

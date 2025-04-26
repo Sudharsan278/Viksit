@@ -73,6 +73,10 @@ def text_to_speech(text, language_code, speaker="meera"):
             st.warning("Sarvam API key not found. Please set SARVAM_API_KEY in environment variables.")
             return None
 
+        if not text or text.strip() == "":
+            st.warning("No text to convert to speech")
+            return None
+
         text_to_speak = text[:1000]
 
         url = "https://api.sarvam.ai/text-to-speech"
