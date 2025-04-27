@@ -44,7 +44,7 @@ This project empowers developers, students, and individuals worldwide by providi
     UI/UX Designer
 
 - Shriram 
-
+    https://github.com/Shreeram2722
     https://www.linkedin.com/in/shriram-swaminathan-6a4b51256/
     UI/UX Designer
 
@@ -93,19 +93,15 @@ This project empowers developers, students, and individuals worldwide by providi
 
 ## 📽️ Demo & Deliverables
 
-- **Demo Video Link:** [Paste YouTube or Loom link here]  
-- **Pitch Deck / PPT Link:** [Paste Google Slides / PDF link here]  
+- **Demo Video Link:** [https://vimeo.com/1079104676/686e1fce87?ts=0&share=copy]  
+- **Pitch Deck / PPT Link:** [https://drive.google.com/file/d/1oUCz7LSHHbLojlolb95XsIS3BpCIGFU2/view?usp=sharing]  
 
 ---
 
 ## ✅ Tasks & Bonus Checklist
 
-- [✅] **All members of the team completed the mandatory task - Followed at least 2 of our social channels and filled the form** (Details in Participant Manual)  
-- [ ] **All members of the team completed Bonus Task 1 - Sharing of Badges and filled the form (2 points)**  (Details in Participant Manual)
-- [ ] **All members of the team completed Bonus Task 2 - Signing up for Sprint.dev and filled the form (3 points)**  (Details in Participant Manual)
-
-*(Mark with ✅ if completed)*
-
+- [✅] **All members of the team completed the mandatory task - Followed at least 2 of our social channels and filled the form** (Details in Participant Manual)
+- [✅] **All members of the team completed Bonus Task 2 - Signing up for Sprint.dev and filled the form (3 points)**
 ---
 
 ## 🧪 How to Run the Project
