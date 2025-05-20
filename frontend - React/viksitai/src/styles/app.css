@@ -1,0 +1,86 @@
+/* styles/App.css */
+/* Global styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+body {
+  color: white;
+  font-family: 'Inter', sans-serif;
+  background-color: #0e1117;
+  margin: 0;
+  padding: 0;
+}
+
+/* Floating code background */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  background-color: rgba(14, 17, 23, 0.95);
+  background-image: 
+      repeating-linear-gradient(rgba(124, 77, 255, 0.05) 0px, transparent 2px, transparent 4px),
+      radial-gradient(rgba(124, 77, 255, 0.05) 1px, transparent 2px);
+  background-size: 100% 4px, 30px 30px;
+  pointer-events: none;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  flex: 1;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Loading indicator */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100%;
+  font-size: 24px;
+  color: white;
+  background-color: #0e1117;
+}
+
+/* Utility classes */
+.text-center {
+  text-align: center;
+}
+
+.mt-20 {
+  margin-top: 20px;
+}
+
+/* Info card styling for main pages */
+.info-card {
+  background-color: rgba(30, 30, 40, 0.7);
+  border-radius: 16px;
+  padding: 25px;
+  margin-bottom: 25px;
+  border: 1px solid rgba(124, 77, 255, 0.2);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+/* Page title styling */
+.page-title {
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  background: linear-gradient(90deg, #9c27b0, #7b1fa2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 10px rgba(124, 77, 255, 0.3);
+}

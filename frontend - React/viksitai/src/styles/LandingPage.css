@@ -1,0 +1,215 @@
+/* styles/LandingPage.css */
+.landing-page {
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Add floating code snippets */
+.floating-code {
+  position: fixed;
+  color: rgba(124, 77, 255, 0.15);
+  font-family: monospace;
+  font-size: 14px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: -1;
+  text-shadow: 0 0 5px rgba(124, 77, 255, 0.2);
+  animation: float-up 60s linear infinite;
+}
+
+@keyframes float-up {
+  0% {
+    transform: translateY(100vh) rotate(5deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh) rotate(-5deg);
+    opacity: 0;
+  }
+}
+
+.main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 30px;
+  background: rgba(30, 30, 40, 0.7);
+  border-radius: 12px;
+  border: 1px solid rgba(124, 77, 255, 0.3);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  margin: 20px;
+}
+
+.logo {
+  font-size: 28px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 0 10px rgba(124, 77, 255, 0.7);
+  letter-spacing: 1px;
+  background: linear-gradient(90deg, #9c27b0, #7b1fa2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  transition: all 0.3s ease;
+}
+
+.logo:hover {
+  transform: scale(1.05);
+  text-shadow: 0 0 15px rgba(124, 77, 255, 0.9);
+}
+
+.hero-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 65vh;
+  text-align: center;
+  padding: 20px;
+  position: relative;
+  z-index: 10;
+}
+
+.typing-container {
+  display: inline-block;
+  margin-bottom: 20px;
+}
+
+.typing-text {
+  font-size: 64px;
+  font-weight: bold;
+  background: linear-gradient(90deg, #9c27b0, #7b1fa2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 20px rgba(124, 77, 255, 0.3);
+  letter-spacing: 2px;
+  overflow: hidden;
+  border-right: 0.15em solid #9c27b0;
+  white-space: nowrap;
+  margin: 0 auto;
+  width: 0;
+  animation: 
+      typing 8s steps(14, end) infinite forwards,
+      blink-caret 0.75s step-end infinite;
+}
+
+.typing-text:hover {
+  text-shadow: 0 0 30px rgba(156, 39, 176, 0.8);
+  letter-spacing: 3px;
+  transform: scale(1.05);
+}
+
+@keyframes typing {
+  0% { width: 0; }
+  50% { width: 100%; }
+  70% { width: 100%; }
+  100% { width: 0; }
+}
+
+@keyframes blink-caret {
+  from, to { border-color: transparent; }
+  50% { border-color: #9c27b0; }
+}
+
+.tagline {
+  font-size: 54px;
+  margin: 15px 0 40px 0;
+  color: white;
+}
+
+.tagline:hover {
+  text-shadow: 0 0 20px rgba(156, 39, 176, 0.7);
+  letter-spacing: 1.2px;
+}
+
+/* Multi-language tagline */
+.multilingual {
+  position: relative;
+  display: inline-block;
+  height: 54px;
+  min-width: 102px;
+  font-weight: bold;
+  vertical-align: middle;
+  overflow: hidden;
+}
+
+.multilingual span {
+  color: #9c27b0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  opacity: 0;
+  width: 100%;
+  display: block;
+  text-align: center;
+  font-size: 54px;
+}
+
+.multilingual span {
+  animation: rotate-single-language 16s ease-in-out infinite;
+}
+
+.multilingual:hover span {
+  text-shadow: 0 0 15px rgba(156, 39, 176, 0.8);
+  transform: translateY(0) scale(1.1) !important;
+}
+
+.multilingual span:nth-child(1) { animation-delay: 0s; }
+.multilingual span:nth-child(2) { animation-delay: 4s; }
+.multilingual span:nth-child(3) { animation-delay: 8s; }
+.multilingual span:nth-child(4) { animation-delay: 12s; }
+
+@keyframes rotate-single-language {
+  0%, 1%, 24%, 100% { 
+    opacity: 0; 
+    transform: translateY(20px); 
+  }
+  3%, 22% { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+.hero-subtitle {
+  color: #ffffff;
+  font-size: 38px;
+  margin-bottom: 30px;
+  max-width: 600px;
+  line-height: 1.6;
+}
+
+.center-button {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.explore-plans-button {
+  background: linear-gradient(135deg, #6441a5, #9c27b0);
+  color: white;
+  padding: 12px 35px;
+  border-radius: 50px;
+  border: none;
+  font-weight: bold;
+  font-size: 18px;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  min-width: 200px;
+  cursor: pointer;
+}
+
+.explore-plans-button:hover {
+  background: linear-gradient(135deg, #7e57c2, #b039c3);
+  box-shadow: 0 5px 20px rgba(124, 77, 255, 0.4);
+  transform: translateY(-2px);
+}

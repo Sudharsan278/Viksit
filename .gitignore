@@ -12,3 +12,4 @@ backend/backend/db.sqlite3
 __pycache__/
 *.pyc
 .devcontainer/
+frontend - React/viksitai/.env
