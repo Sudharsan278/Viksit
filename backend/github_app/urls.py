@@ -10,5 +10,4 @@ urlpatterns = [
     path('resources/', views.resources_page, name='resources_page'),
     path('repo-info/<str:username>/<str:repo_name>/', views.get_repo_info, name='get_repo_info'),
     path('generate-documentation/', views.generate_documentation, name='generate_documentation'),
-
 ]

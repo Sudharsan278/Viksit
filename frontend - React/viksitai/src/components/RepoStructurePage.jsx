@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import RepoAnalysis from './RepoAnalysis';
 import * as d3 from 'd3';
 
 const RepoStructurePage = () => {
@@ -13,8 +14,20 @@ const RepoStructurePage = () => {
   const [error, setError] = useState(null);
   const [visualizationType, setVisualizationType] = useState('tree');
   
+  // File viewing functionality
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileContent, setFileContent] = useState('');
+  const [fileLoading, setFileLoading] = useState(false);
+  const [fileError, setFileError] = useState(null);
+  
+  // For tracking expanded state
+  const [expandedDirs, setExpandedDirs] = useState(new Set());
+  
   const svgRef = useRef(null);
   const tooltipRef = useRef(null);
+  
+  // API Base URL
+  const API_BASE_URL = 'https://viksit.onrender.com/api';
   
   // Function to fetch repositories for a given username
   const fetchRepositories = async (username) => {
@@ -24,19 +37,14 @@ const RepoStructurePage = () => {
     setError(null);
     
     try {
-      const token = import.meta.env.VITE_APP_GITHUB_TOKEN;
-      const headers = token ? { Authorization: `token ${token}` } : {};
-      
-      const response = await fetch(`https://api.github.com/users/${username}/repos?per_page=100`, {
-        headers
-      });
+      const response = await fetch(`${API_BASE_URL}/repositories/${username}/`);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch repositories: ${response.status}`);
       }
       
       const data = await response.json();
-      setRepositories(data);
+      setRepositories(data.repos || []);
       setSearchedUsername(username);
     } catch (err) {
       setError(`Error fetching repositories: ${err.message}`);
@@ -46,25 +54,78 @@ const RepoStructurePage = () => {
     }
   };
   
+  // Function to fetch directory contents
+  const fetchDirectoryContents = async (dirPath) => {
+    if (!searchedUsername || !selectedRepo || !dirPath) return [];
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/repo-structure/${searchedUsername}/${selectedRepo.name}/?path=${encodeURIComponent(dirPath)}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch directory contents: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.structure || [];
+    } catch (err) {
+      console.error(`Error fetching directory contents for ${dirPath}:`, err.message);
+      return [];
+    }
+  };
+  
+  // Recursive function to fetch all directory contents
+  const expandAllDirectories = async (node) => {
+    if (!node || node.type !== 'dir') return node;
+    
+    // If the directory doesn't have children or has empty children, fetch its contents
+    if (!node.children || node.children.length === 0) {
+      const contents = await fetchDirectoryContents(node.path);
+      
+      // Map contents to node structure
+      node.children = contents.map(item => ({
+        name: item.name,
+        path: item.path,
+        type: item.type,
+        size: item.size || 0,
+        url: item.url,
+        download_url: item.download_url,
+        children: item.type === 'dir' ? [] : null
+      }));
+      
+      // Add to expanded dirs set
+      setExpandedDirs(prev => new Set([...prev, node.path]));
+    }
+    
+    // Recursively expand all subdirectories
+    if (node.children && node.children.length > 0) {
+      // Process directories in sequence to avoid overwhelming the API
+      for (const child of node.children) {
+        if (child.type === 'dir') {
+          await expandAllDirectories(child);
+        }
+      }
+    }
+    
+    return node;
+  };
+  
+  // Function to fetch repo structure with automatic full expansion
   const fetchRepoStructure = async (repo) => {
     if (!repo) return;
     
     setLoading(true);
     setError(null);
+    setExpandedDirs(new Set());
     
     try {
-      const token = import.meta.env.VITE_APP_GITHUB_TOKEN;
-      const headers = token ? { Authorization: `token ${token}` } : {};
-      
-      const response = await fetch(`https://api.github.com/repos/${searchedUsername}/${repo.name}/contents`, {
-        headers
-      });
+      const response = await fetch(`${API_BASE_URL}/repo-structure/${searchedUsername}/${repo.name}/`);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch repository structure: ${response.status}`);
       }
       
-      const fileList = await response.json();
+      const data = await response.json();
+      const fileList = data.structure || [];
       
       // Transform into hierarchical structure
       const rootNode = {
@@ -74,41 +135,28 @@ const RepoStructurePage = () => {
         children: []
       };
       
-      // Process first level files/directories
-      await Promise.all(fileList.map(async (item) => {
-        const node = {
-          name: item.name,
-          path: item.path,
-          type: item.type,
-          size: item.size || 0,
-          children: []
-        };
-        
-        if (item.type === 'dir') {
-          // Fetch subdirectory contents (1 level deep only for performance)
-          try {
-            const subDirResponse = await fetch(item.url, { headers });
-            
-            if (subDirResponse.ok) {
-              const subDirContents = await subDirResponse.json();
-              node.children = subDirContents.map(subItem => ({
-                name: subItem.name,
-                path: subItem.path,
-                type: subItem.type,
-                size: subItem.size || 0,
-                url: subItem.url,
-                children: subItem.type === 'dir' ? [] : null
-              }));
-            }
-          } catch (subdirErr) {
-            console.error(`Error fetching subdirectory ${item.path}:`, subdirErr);
-          }
-        }
-        
-        rootNode.children.push(node);
+      // Process files/directories
+      rootNode.children = fileList.map(item => ({
+        name: item.name,
+        path: item.path,
+        type: item.type,
+        size: item.size || 0, 
+        url: item.url,
+        download_url: item.download_url,
+        children: item.type === 'dir' ? [] : null
       }));
       
-      setRepoStructure(rootNode);
+      // Recursively fetch all directory contents
+      const expandedRootNode = { ...rootNode };
+      
+      // Process directories one by one to avoid overwhelming the API
+      for (const child of expandedRootNode.children) {
+        if (child.type === 'dir') {
+          await expandAllDirectories(child);
+        }
+      }
+      
+      setRepoStructure(expandedRootNode);
     } catch (err) {
       setError(`Error fetching repository structure: ${err.message}`);
       setRepoStructure(null);
@@ -117,16 +165,102 @@ const RepoStructurePage = () => {
     }
   };
   
+  // Function to fetch file content
+  const fetchFileContent = async (fileUrl, fileName) => {
+    if (!fileUrl) return;
+    
+    setFileLoading(true);
+    setFileError(null);
+    
+    try {
+      const response = await fetch(fileUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch file content: ${response.status}`);
+      }
+      
+      const content = await response.text();
+      
+      setSelectedFile({
+        name: fileName,
+        url: fileUrl
+      });
+      setFileContent(content);
+    } catch (err) {
+      setFileError(`Error fetching file content: ${err.message}`);
+      setFileContent('');
+    } finally {
+      setFileLoading(false);
+    }
+  };
+  
+  // Function to handle node clicks (either open directory or show file)
+  const handleNodeClick = async (d) => {
+    if (d.data.type === 'dir') {
+      // If it's already in expanded dirs, no need to fetch again
+      if (!expandedDirs.has(d.data.path) && d.data.children && d.data.children.length === 0) {
+        const contents = await fetchDirectoryContents(d.data.path);
+        
+        // Update the node with fetched children
+        d.data.children = contents.map(item => ({
+          name: item.name,
+          path: item.path,
+          type: item.type,
+          size: item.size || 0,
+          url: item.url,
+          download_url: item.download_url,
+          children: item.type === 'dir' ? [] : null
+        }));
+        
+        // Add to expanded dirs
+        setExpandedDirs(prev => new Set([...prev, d.data.path]));
+        
+        // Re-render visualization with updated data
+        if (visualizationType === 'tree') {
+          renderTreeVisualization();
+        } else if (visualizationType === 'sunburst') {
+          renderSunburstVisualization();
+        }
+      }
+    } else if (d.data.type === 'file') {
+      // If it's a file, fetch and display its content
+      fetchFileContent(d.data.download_url, d.data.name);
+    }
+  };
+  
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
     fetchRepositories(username);
+    
+    // Reset file viewing state
+    setSelectedFile(null);
+    setFileContent('');
   };
   
   // Handle repository selection
   const handleRepoSelect = (repo) => {
     setSelectedRepo(repo);
     fetchRepoStructure(repo);
+    
+    // Reset file viewing state
+    setSelectedFile(null);
+    setFileContent('');
+  };
+  
+  // Function to download the current file
+  const handleDownloadFile = () => {
+    if (!selectedFile || !fileContent) return;
+    
+    const blob = new Blob([fileContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = selectedFile.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
   
   // Create D3 visualization when repo structure changes
@@ -142,6 +276,40 @@ const RepoStructurePage = () => {
       renderSunburstVisualization();
     }
   }, [repoStructure, visualizationType]);
+  
+  // Helper function to determine file syntax highlighting
+  const getLanguageFromFilename = (filename) => {
+    const ext = filename.split('.').pop().toLowerCase();
+    
+    const languageMap = {
+      'js': 'javascript',
+      'jsx': 'javascript',
+      'ts': 'typescript',
+      'tsx': 'typescript',
+      'py': 'python',
+      'java': 'java',
+      'html': 'html',
+      'css': 'css',
+      'json': 'json',
+      'md': 'markdown',
+      'txt': 'text',
+      'xml': 'xml',
+      'yml': 'yaml',
+      'yaml': 'yaml',
+      'sh': 'bash',
+      'php': 'php',
+      'rb': 'ruby',
+      'c': 'c',
+      'cpp': 'cpp',
+      'cs': 'csharp',
+      'go': 'go',
+      'rs': 'rust',
+      'swift': 'swift',
+      'kt': 'kotlin'
+    };
+    
+    return languageMap[ext] || 'text';
+  };
   
   // Tree visualization using D3
   const renderTreeVisualization = () => {
@@ -180,7 +348,7 @@ const RepoStructurePage = () => {
                     .attr("opacity", 0)
                     .transition()
                     .duration(800)
-                    .delay((d, i) => i * 30)
+                    .delay((d, i) => i * 5) // Reduced delay for faster rendering
                     .attr("opacity", 0.6);
     
     // Add nodes
@@ -193,7 +361,7 @@ const RepoStructurePage = () => {
                     .attr("opacity", 0)
                     .transition()
                     .duration(800)
-                    .delay((d, i) => i * 50)
+                    .delay((d, i) => i * 10) // Reduced delay for faster rendering
                     .attr("opacity", 1);
     
     // Add circles for nodes
@@ -203,6 +371,7 @@ const RepoStructurePage = () => {
       .attr("fill", d => d.data.type === 'dir' ? "#3B82F6" : "#10B981")
       .attr("stroke", "#fff")
       .attr("stroke-width", 1.5)
+      .style("cursor", "pointer")
       .on("mouseover", function(event, d) {
         const tooltip = d3.select(tooltipRef.current);
         tooltip.style("opacity", 1)
@@ -219,6 +388,9 @@ const RepoStructurePage = () => {
       })
       .on("mouseout", function() {
         d3.select(tooltipRef.current).style("opacity", 0);
+      })
+      .on("click", function(event, d) {
+        handleNodeClick(d);
       });
     
     // Add labels to nodes
@@ -229,7 +401,11 @@ const RepoStructurePage = () => {
       .attr("text-anchor", d => d.children ? "end" : "start")
       .text(d => d.data.name.length > 20 ? d.data.name.slice(0, 20) + "..." : d.data.name)
       .attr("fill", "#e2e8f0")
-      .attr("font-size", "0.75rem");
+      .attr("font-size", "0.75rem")
+      .style("cursor", "pointer")
+      .on("click", function(event, d) {
+        handleNodeClick(d);
+      });
   };
   
   // Sunburst visualization using D3
@@ -278,6 +454,7 @@ const RepoStructurePage = () => {
                    .style("stroke", "#1e293b")
                    .style("stroke-width", "1px")
                    .style("opacity", 0)
+                   .style("cursor", "pointer")
                    .on("mouseover", function(event, d) {
                      d3.select(this).style("opacity", 1);
                      
@@ -298,9 +475,12 @@ const RepoStructurePage = () => {
                      d3.select(this).style("opacity", 0.8);
                      d3.select(tooltipRef.current).style("opacity", 0);
                    })
+                   .on("click", function(event, d) {
+                     handleNodeClick(d);
+                   })
                    .transition()
                    .duration(1000)
-                   .delay((d, i) => i * 5)
+                   .delay((d, i) => i * 2) // Reduced delay for faster rendering
                    .style("opacity", 0.8);
   };
   
@@ -327,7 +507,7 @@ const RepoStructurePage = () => {
       
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-100">Repository Structure Visualization</h1>
-        <p className="text-gray-400">Explore GitHub repository structures in an interactive way</p>
+        <p className="text-gray-400">Explore GitHub repository structures and view file contents interactively</p>
       </div>
       
       {/* GitHub Username Form */}
@@ -357,6 +537,23 @@ const RepoStructurePage = () => {
         </form>
       </div>
       
+      {/* Loading indicator for initial repository structure loading */}
+      {loading && !error && (
+        <div className="mb-8 bg-gray-800 rounded-xl p-6 shadow-lg flex justify-center">
+          <div className="flex flex-col items-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            <p className="mt-4 text-gray-400">
+              {selectedRepo 
+                ? 'Loading full repository structure...' 
+                : 'Loading repositories...'}
+            </p>
+            <p className="mt-2 text-gray-500 text-sm">
+              {selectedRepo && 'This may take a moment as we expand all directories.'}
+            </p>
+          </div>
+        </div>
+      )}
+      
       {/* Error message */}
       {error && (
         <div className="mb-8 bg-red-900/30 border border-red-700 text-red-300 px-4 py-3 rounded-lg">
@@ -365,7 +562,7 @@ const RepoStructurePage = () => {
       )}
       
       {/* Repositories Grid */}
-      {repositories.length > 0 && (
+      {repositories.length > 0 && !loading && (
         <div className="mb-8">
           <h2 className="text-xl font-bold text-gray-100 mb-4">
             Repositories for {searchedUsername}
@@ -387,32 +584,9 @@ const RepoStructurePage = () => {
                     </div>
                     <div>
                       <h3 className="font-medium text-gray-100 group-hover:text-white">{repo.name}</h3>
-                      <div className="mt-1 flex items-center flex-wrap">
-                        {repo.language && (
-                          <>
-                            <span className="mr-2 h-3 w-3 rounded-full" style={{ 
-                              backgroundColor: repo.language === 'JavaScript' ? '#f7df1e' : 
-                                           repo.language === 'TypeScript' ? '#3178c6' :
-                                           repo.language === 'Python' ? '#3572A5' :
-                                           repo.language === 'Java' ? '#b07219' :
-                                           repo.language === 'HTML' ? '#e34c26' :
-                                           repo.language === 'CSS' ? '#563d7c' :
-                                           repo.language === 'PHP' ? '#4F5D95' : '#6e7681'
-                            }}></span>
-                            <span className="text-xs text-gray-400">{repo.language}</span>
-                            <span className="mx-2 text-gray-600">•</span>
-                          </>
-                        )}
-                        <span className="text-xs text-gray-400">Updated {new Date(repo.updated_at).toLocaleDateString()}</span>
+                      <div className="mt-1 flex items-center">
+                        <span className="text-xs text-gray-400">Updated {repo.id}</span>
                       </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="flex items-center mr-4">
-                      <svg className="mr-1 h-4 w-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-                      </svg>
-                      <span className="text-xs font-medium text-gray-400">{repo.stargazers_count}</span>
                     </div>
                   </div>
                 </div>
@@ -422,104 +596,129 @@ const RepoStructurePage = () => {
         </div>
       )}
       
-      {/* Visualization Controls (displayed when a repo is selected) */}
-      {selectedRepo && (
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <h2 className="text-xl font-bold text-gray-100">
-              Structure for {selectedRepo.name}
-            </h2>
-            <div className="flex bg-gray-800 rounded-lg p-1">
-              <button
-                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${visualizationType === 'tree' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
-                onClick={() => setVisualizationType('tree')}
-              >
-                Tree View
-              </button>
-              <button
-                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${visualizationType === 'sunburst' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
-                onClick={() => setVisualizationType('sunburst')}
-              >
-                Sunburst View
-              </button>
-            </div>
-          </div>
-          
-          {/* Legend */}
-          <div className="mb-6 flex gap-6 bg-gray-800 rounded-lg p-4">
-            <div className="flex items-center">
-              <div className="h-3 w-3 rounded-full bg-blue-500 mr-2"></div>
-              <span className="text-sm text-gray-300">Directories</span>
-            </div>
-            <div className="flex items-center">
-              <div className="h-3 w-3 rounded-full bg-green-500 mr-2"></div>
-              <span className="text-sm text-gray-300">Files</span>
-            </div>
-          </div>
-          
-          {/* Visualization container with loading state */}
-          <div className="bg-gray-800 rounded-xl p-6 shadow-lg overflow-auto relative min-h-[600px]">
-            {loading ? (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="flex flex-col items-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                  <p className="mt-4 text-gray-400">Loading repository structure...</p>
+      {/* Main Content Section */}
+      {selectedRepo && !loading && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Visualization Section - 2 columns on large screens */}
+          <div className="lg:col-span-2">
+            {/* Visualization Controls */}
+            <div className="mb-8">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <h2 className="text-xl font-bold text-gray-100">
+                  Structure for {selectedRepo.name}
+                </h2>
+                <div className="flex bg-gray-800 rounded-lg p-1">
+                  <button
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${visualizationType === 'tree' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                    onClick={() => setVisualizationType('tree')}
+                  >
+                    Tree View
+                  </button>
+                  <button
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${visualizationType === 'sunburst' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                    onClick={() => setVisualizationType('sunburst')}
+                  >
+                    Sunburst View
+                  </button>
                 </div>
               </div>
-            ) : repoStructure ? (
-              <div className="relative">
-                <svg ref={svgRef} className="mx-auto" style={{ overflow: 'visible' }}></svg>
-                <div 
-                  ref={tooltipRef} 
-                  className="absolute opacity-0 pointer-events-none bg-gray-900 text-white p-2 rounded-lg shadow-lg z-10 border border-gray-700"
-                  style={{ transition: 'opacity 0.2s ease-in-out' }}
-                ></div>
+              
+              {/* Legend */}
+              <div className="mb-6 flex gap-6 bg-gray-800 rounded-lg p-4">
+                <div className="flex items-center">
+                  <div className="h-3 w-3 rounded-full bg-blue-500 mr-2"></div>
+                  <span className="text-sm text-gray-300">Directories</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="h-3 w-3 rounded-full bg-green-500 mr-2"></div>
+                  <span className="text-sm text-gray-300">Files</span>
+                </div>
               </div>
-            ) : (
-              <div className="text-center py-12 text-gray-400">
-                {selectedRepo ? 'No structure data available' : 'Select a repository to visualize its structure'}
+              
+              {/* Visualization container */}
+              <div className="bg-gray-800 rounded-xl p-6 shadow-lg overflow-auto relative min-h-[600px]">
+                {repoStructure ? (
+                  <div className="relative">
+                    <svg ref={svgRef} className="mx-auto" style={{ overflow: 'visible' }}></svg>
+                    <div 
+                      ref={tooltipRef} 
+                      className="absolute opacity-0 pointer-events-none bg-gray-900 text-white p-2 rounded-lg shadow-lg z-10 border border-gray-700"
+                      style={{ transition: 'opacity 0.2s ease-in-out' }}
+                    ></div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-400">
+                    {selectedRepo ? 'No structure data available' : 'Select a repository to visualize its structure'}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
+          </div>
+          
+          {/* File Content Viewer - 1 column on large screens */}
+          <div className="lg:col-span-1">
+            <div className="bg-gray-800 rounded-xl shadow-lg overflow-hidden h-full">
+              <div className="bg-gray-750 px-6 py-4 flex justify-between items-center border-b border-gray-700">
+                <div className="flex items-center">
+                  <svg className="h-5 w-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  </svg>
+                  <h3 className="font-medium text-gray-200 truncate">
+                    {selectedFile ? selectedFile.name : 'File Viewer'}
+                  </h3>
+                </div>
+                {selectedFile && (
+                  <button 
+                    onClick={handleDownloadFile}
+                    className="text-blue-400 hover:text-blue-300 focus:outline-none flex items-center"
+                    title="Download file"
+                  >
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                  </button>
+                )}
+              </div>
+              
+              <div className="h-[600px] overflow-auto p-4 bg-gray-900">
+                {fileLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="flex flex-col items-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                      <p className="mt-4 text-gray-400">Loading file content...</p>
+                    </div>
+                  </div>
+                ) : fileError ? (
+                  <div className="bg-red-900/30 border border-red-700 text-red-300 px-4 py-3 rounded-lg">
+                    {fileError}
+                  </div>
+                ) : selectedFile ? (
+                  <pre className="text-sm font-mono text-gray-300 whitespace-pre-wrap">
+                    <code className={`language-${getLanguageFromFilename(selectedFile.name)}`}>
+                      {fileContent}
+                    </code>
+                  </pre>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
+                    <svg className="h-16 w-16 text-gray-700 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <p className="text-gray-500">Click on a file in the visualization to view its content</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
-      
-      {/* Information card */}
-      <div className="mt-8 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 shadow-lg">
-        <h3 className="font-bold text-gray-100 mb-4">Understanding Repository Structure</h3>
-        <p className="text-gray-300 mb-4">
-          The visualization above helps you understand the structure of the repository at a glance. 
-          Here's how to interpret it:
-        </p>
-        <ul className="space-y-2 text-gray-400">
-          <li className="flex items-start">
-            <svg className="h-5 w-5 mr-2 text-blue-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-            </svg>
-            <span>Blue nodes represent directories in the repository.</span>
-          </li>
-          <li className="flex items-start">
-            <svg className="h-5 w-5 mr-2 text-green-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-            </svg>
-            <span>Green nodes represent individual files.</span>
-          </li>
-          <li className="flex items-start">
-            <svg className="h-5 w-5 mr-2 text-purple-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path>
-            </svg>
-            <span>Hover over nodes to see more details like file path and size.</span>
-          </li>
-          <li className="flex items-start">
-            <svg className="h-5 w-5 mr-2 text-yellow-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"></path>
-            </svg>
-            <span>Switch between Tree view and Sunburst view for different perspectives.</span>
-          </li>
-        </ul>
-      </div>
+      <button 
+        onClick={() => navigate(`/repo-analysis?username=${searchedUsername}&repo_name=${selectedRepo.name}`)}
+        className="bg-blue-600 px-4 py-2 rounded-lg text-white hover:bg-blue-700"
+      >
+        Analyze Repository
+      </button>
     </div>
-  );
-};
+  )
+}
 
 export default RepoStructurePage;
