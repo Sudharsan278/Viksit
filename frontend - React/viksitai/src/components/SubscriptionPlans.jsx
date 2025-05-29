@@ -74,7 +74,6 @@ const SubscriptionPlans = ({ onGoogleSignIn, onClose }) => {
               </li>
             </ul>
             <button 
-              onClick={onGoogleSignIn}
               className="w-full rounded-lg bg-indigo-600 py-2 font-medium text-white transition-colors hover:bg-indigo-700"
             >
               Sign Up Now
@@ -113,7 +112,7 @@ const SubscriptionPlans = ({ onGoogleSignIn, onClose }) => {
               </li>
             </ul>
             <button 
-              onClick={onGoogleSignIn}
+              
               className="w-full rounded-lg bg-purple-600 py-2 font-medium text-white transition-colors hover:bg-purple-700"
             >
               Contact Sales
