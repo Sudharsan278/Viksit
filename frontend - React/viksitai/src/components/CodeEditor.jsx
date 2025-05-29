@@ -160,7 +160,7 @@ const CodeEditor = () => {
     const selectedLang = languages.find(lang => lang.value === language);
     
     try {
-      const response = await fetch(`http://localhost:8080/api/execute-code/`, {
+      const response = await fetch(`${BASE_URL}/execute-code/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
