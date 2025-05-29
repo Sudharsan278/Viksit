@@ -11,6 +11,8 @@ ALLOWED_HOSTS = ['*']
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+JDOODLE_CLIENT_SECRET = os.getenv('JDOODLE_CLIENT_SECRET')
+JDOODLE_CLIENT_ID = os.getenv('JDOODLE_CLIENT_ID')
 
 INSTALLED_APPS = [
     'django.contrib.admin',

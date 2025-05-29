@@ -14,22 +14,18 @@ const RepoStructurePage = () => {
   const [error, setError] = useState(null);
   const [visualizationType, setVisualizationType] = useState('tree');
   
-  // File viewing functionality
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileContent, setFileContent] = useState('');
   const [fileLoading, setFileLoading] = useState(false);
   const [fileError, setFileError] = useState(null);
   
-  // For tracking expanded state
   const [expandedDirs, setExpandedDirs] = useState(new Set());
   
   const svgRef = useRef(null);
   const tooltipRef = useRef(null);
   
-  // API Base URL
   const API_BASE_URL = 'https://viksit.onrender.com/api';
   
-  // Function to fetch repositories for a given username
   const fetchRepositories = async (username) => {
     if (!username) return;
     
@@ -54,7 +50,6 @@ const RepoStructurePage = () => {
     }
   };
   
-  // Function to fetch directory contents
   const fetchDirectoryContents = async (dirPath) => {
     if (!searchedUsername || !selectedRepo || !dirPath) return [];
     
@@ -73,15 +68,12 @@ const RepoStructurePage = () => {
     }
   };
   
-  // Recursive function to fetch all directory contents
   const expandAllDirectories = async (node) => {
     if (!node || node.type !== 'dir') return node;
     
-    // If the directory doesn't have children or has empty children, fetch its contents
     if (!node.children || node.children.length === 0) {
       const contents = await fetchDirectoryContents(node.path);
       
-      // Map contents to node structure
       node.children = contents.map(item => ({
         name: item.name,
         path: item.path,
@@ -92,13 +84,10 @@ const RepoStructurePage = () => {
         children: item.type === 'dir' ? [] : null
       }));
       
-      // Add to expanded dirs set
       setExpandedDirs(prev => new Set([...prev, node.path]));
     }
     
-    // Recursively expand all subdirectories
     if (node.children && node.children.length > 0) {
-      // Process directories in sequence to avoid overwhelming the API
       for (const child of node.children) {
         if (child.type === 'dir') {
           await expandAllDirectories(child);
@@ -109,7 +98,6 @@ const RepoStructurePage = () => {
     return node;
   };
   
-  // Function to fetch repo structure with automatic full expansion
   const fetchRepoStructure = async (repo) => {
     if (!repo) return;
     
@@ -127,7 +115,6 @@ const RepoStructurePage = () => {
       const data = await response.json();
       const fileList = data.structure || [];
       
-      // Transform into hierarchical structure
       const rootNode = {
         name: repo.name,
         path: '',
@@ -135,7 +122,6 @@ const RepoStructurePage = () => {
         children: []
       };
       
-      // Process files/directories
       rootNode.children = fileList.map(item => ({
         name: item.name,
         path: item.path,
@@ -146,10 +132,8 @@ const RepoStructurePage = () => {
         children: item.type === 'dir' ? [] : null
       }));
       
-      // Recursively fetch all directory contents
       const expandedRootNode = { ...rootNode };
       
-      // Process directories one by one to avoid overwhelming the API
       for (const child of expandedRootNode.children) {
         if (child.type === 'dir') {
           await expandAllDirectories(child);
@@ -165,7 +149,6 @@ const RepoStructurePage = () => {
     }
   };
   
-  // Function to fetch file content
   const fetchFileContent = async (fileUrl, fileName) => {
     if (!fileUrl) return;
     
@@ -194,14 +177,11 @@ const RepoStructurePage = () => {
     }
   };
   
-  // Function to handle node clicks (either open directory or show file)
   const handleNodeClick = async (d) => {
     if (d.data.type === 'dir') {
-      // If it's already in expanded dirs, no need to fetch again
       if (!expandedDirs.has(d.data.path) && d.data.children && d.data.children.length === 0) {
         const contents = await fetchDirectoryContents(d.data.path);
         
-        // Update the node with fetched children
         d.data.children = contents.map(item => ({
           name: item.name,
           path: item.path,
@@ -212,10 +192,8 @@ const RepoStructurePage = () => {
           children: item.type === 'dir' ? [] : null
         }));
         
-        // Add to expanded dirs
         setExpandedDirs(prev => new Set([...prev, d.data.path]));
         
-        // Re-render visualization with updated data
         if (visualizationType === 'tree') {
           renderTreeVisualization();
         } else if (visualizationType === 'sunburst') {
@@ -223,32 +201,26 @@ const RepoStructurePage = () => {
         }
       }
     } else if (d.data.type === 'file') {
-      // If it's a file, fetch and display its content
       fetchFileContent(d.data.download_url, d.data.name);
     }
   };
   
-  // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
     fetchRepositories(username);
     
-    // Reset file viewing state
     setSelectedFile(null);
     setFileContent('');
   };
   
-  // Handle repository selection
   const handleRepoSelect = (repo) => {
     setSelectedRepo(repo);
     fetchRepoStructure(repo);
     
-    // Reset file viewing state
     setSelectedFile(null);
     setFileContent('');
   };
   
-  // Function to download the current file
   const handleDownloadFile = () => {
     if (!selectedFile || !fileContent) return;
     
@@ -263,11 +235,9 @@ const RepoStructurePage = () => {
     URL.revokeObjectURL(url);
   };
   
-  // Create D3 visualization when repo structure changes
   useEffect(() => {
     if (!repoStructure || !svgRef.current) return;
     
-    // Clear previous visualization
     d3.select(svgRef.current).selectAll("*").remove();
     
     if (visualizationType === 'tree') {
@@ -277,7 +247,6 @@ const RepoStructurePage = () => {
     }
   }, [repoStructure, visualizationType]);
   
-  // Helper function to determine file syntax highlighting
   const getLanguageFromFilename = (filename) => {
     const ext = filename.split('.').pop().toLowerCase();
     
@@ -311,7 +280,6 @@ const RepoStructurePage = () => {
     return languageMap[ext] || 'text';
   };
   
-  // Tree visualization using D3
   const renderTreeVisualization = () => {
     const svg = d3.select(svgRef.current);
     const width = 960;
@@ -327,13 +295,10 @@ const RepoStructurePage = () => {
     const treeLayout = d3.tree()
                           .size([height - margin.top - margin.bottom, width - margin.left - margin.right]);
     
-    // Use d3 hierarchy to process our data
     const root = d3.hierarchy(repoStructure);
     
-    // Assign positions to nodes
     const treeData = treeLayout(root);
     
-    // Add links between nodes
     const links = g.selectAll(".link")
                     .data(treeData.links())
                     .enter()
@@ -348,10 +313,10 @@ const RepoStructurePage = () => {
                     .attr("opacity", 0)
                     .transition()
                     .duration(800)
-                    .delay((d, i) => i * 5) // Reduced delay for faster rendering
+                    .delay((d, i) => i * 5) 
                     .attr("opacity", 0.6);
-    
-    // Add nodes
+  
+                    
     const nodes = g.selectAll(".node")
                     .data(treeData.descendants())
                     .enter()
@@ -361,10 +326,9 @@ const RepoStructurePage = () => {
                     .attr("opacity", 0)
                     .transition()
                     .duration(800)
-                    .delay((d, i) => i * 10) // Reduced delay for faster rendering
+                    .delay((d, i) => i * 10) 
                     .attr("opacity", 1);
     
-    // Add circles for nodes
     g.selectAll(".node")
       .append("circle")
       .attr("r", d => d.data.type === 'dir' ? 7 : 5)
@@ -393,7 +357,6 @@ const RepoStructurePage = () => {
         handleNodeClick(d);
       });
     
-    // Add labels to nodes
     g.selectAll(".node")
       .append("text")
       .attr("dy", d => d.children ? -10 : 3)
@@ -408,7 +371,6 @@ const RepoStructurePage = () => {
       });
   };
   
-  // Sunburst visualization using D3
   const renderSunburstVisualization = () => {
     const svg = d3.select(svgRef.current);
     const width = 800;
@@ -421,30 +383,24 @@ const RepoStructurePage = () => {
     const g = svg.append("g")
                  .attr("transform", `translate(${width / 2},${height / 2})`);
     
-    // Use d3 hierarchy to process our data
     const root = d3.hierarchy(repoStructure)
                    .sum(d => d.type === 'file' ? (d.size || 1) : 0);
     
-    // Create a color scale
     const colorScale = d3.scaleOrdinal()
                           .domain(["file", "dir"])
                           .range(["#10B981", "#3B82F6"]);
     
-    // Create the sunburst layout
     const partition = d3.partition()
                          .size([2 * Math.PI, radius]);
     
-    // Assign positions to nodes
     partition(root);
     
-    // Create arc generator
     const arc = d3.arc()
                    .startAngle(d => d.x0)
                    .endAngle(d => d.x1)
                    .innerRadius(d => d.y0)
                    .outerRadius(d => d.y1);
     
-    // Add the arcs
     const arcs = g.selectAll("path")
                    .data(root.descendants().filter(d => d.depth))
                    .enter()
@@ -480,7 +436,7 @@ const RepoStructurePage = () => {
                    })
                    .transition()
                    .duration(1000)
-                   .delay((d, i) => i * 2) // Reduced delay for faster rendering
+                   .delay((d, i) => i * 2)
                    .style("opacity", 0.8);
   };
   

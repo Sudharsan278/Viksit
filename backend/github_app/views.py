@@ -462,3 +462,58 @@ def generate_repo_documentation(repo_data, readme_content, structure_info):
     )
     
     return response
+
+@api_view(['POST'])
+def execute_code(request):
+    try:
+        data = request.data
+        script = data.get('script')
+        language = data.get('language')
+        stdin = data.get('stdin', '')
+        version_index = data.get('versionIndex', '0')
+        compile_only = data.get('compileOnly', False)
+        
+        if not script:
+            return Response({"error": "script is required"}, status=400)
+        
+        if not language:
+            return Response({"error": "language is required"}, status=400)
+        
+        # Get JDoodle credentials from environment
+        client_id = os.getenv('JDOODLE_CLIENT_ID')
+        client_secret = os.getenv('JDOODLE_CLIENT_SECRET')
+        
+        if not client_id or not client_secret:
+            return Response({"error": "JDoodle credentials not configured"}, status=500)
+        
+        # Prepare payload for JDoodle API
+        payload = {
+            'clientId': client_id,
+            'clientSecret': client_secret,
+            'script': script,
+            'stdin': stdin,
+            'language': language,
+            'versionIndex': version_index,
+            'compileOnly': compile_only
+        }
+        
+        # Make request to JDoodle API
+        try:
+            response = requests.post(
+                'https://api.jdoodle.com/v1/execute',
+                json=payload,
+                headers={'Content-Type': 'application/json'},
+                timeout=30
+            )
+            
+            if response.status_code != 200:
+                return Response({"error": "JDoodle API error"}, status=response.status_code)
+            
+            result = response.json()
+            return Response(result)
+            
+        except Exception as e:
+            return Response({"error": f"Failed to execute code: {str(e)}"}, status=500)
+    
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)

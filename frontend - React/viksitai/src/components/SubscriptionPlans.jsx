@@ -1,6 +1,7 @@
-import React from 'react'
 
-const SubscriptionPlans = ({ onGoogleSignIn }) => {
+import React, { useState, useEffect } from 'react';
+
+const SubscriptionPlans = ({ onGoogleSignIn, onClose }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
       <div className="max-w-4xl transform overflow-hidden rounded-xl bg-gray-800 p-6 shadow-2xl transition-all duration-300 sm:p-8">
@@ -123,7 +124,7 @@ const SubscriptionPlans = ({ onGoogleSignIn }) => {
         <div className="mt-8 text-center">
           <button 
             className="text-sm text-gray-400 underline hover:text-white"
-            onClick={() => document.querySelector('.fixed').classList.add('animate-fade-out')}
+            onClick={onClose}
           >
             No thanks, continue with free trial
           </button>

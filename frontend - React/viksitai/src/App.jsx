@@ -7,10 +7,10 @@ import Navbar from './components/Navbar';
 import MainPage from './components/MainPage';
 import RepoStructurePage from './components/RepoStructurePage';
 import RepoAnalysis from './components/RepoAnalysis';
-// import ResourcesPage from './components/ResourcesPage';
-// import CodeEditorPage from './components/CodeEditorPage';
-// import CommunityPage from './components/CommunityPage';
-// import AboutPage from './components/AboutPage';
+import ResourcesPage from './components/ResourcesPage';
+import CodeEditor from './components/CodeEditor';
+import CommunityPage from './components/CommunityPage';
+import AboutPage from './components/AboutPage';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_APP_FIREBASE_API_KEY,
@@ -79,10 +79,10 @@ const App = () => {
             <Route path="/main" element={authenticated ? <MainPage username={username} /> : <Navigate to="/" />} />
             <Route path="/repo-structure" element={authenticated ? <RepoStructurePage /> : <Navigate to="/" />} />
             <Route path="/repo-analysis" element={<RepoAnalysis />} />
-            {/* <Route path="/resources" element={authenticated ? <ResourcesPage /> : <Navigate to="/" />} />
-            <Route path="/code-editor" element={authenticated ? <CodeEditorPage /> : <Navigate to="/" />} />
-            <Route path="/community" element={authenticated ? <CommunityPage /> : <Navigate to="/" />} />
-            <Route path="/about" element={authenticated ? <AboutPage /> : <Navigate to="/" />} />  */}
+            <Route path="/code-editor" element={authenticated ? <CodeEditor /> : <Navigate to="/" />} />
+            <Route path="/resources" element={authenticated ? <ResourcesPage /> : <Navigate to="/" />} />
+            <Route path="/community" element={authenticated ? <CommunityPage userName={username}/> : <Navigate to="/" />} />
+            <Route path="/about" element={authenticated ? <AboutPage /> : <Navigate to="/" />} /> 
           </Routes>
         </div>
       </div>

@@ -4,20 +4,33 @@ import SubscriptionPlans from './SubscriptionPlans';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 
-
 const LandingPage = () => {
   const [showSubscription, setShowSubscription] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [currentLanguageIndex, setCurrentLanguageIndex] = useState(0);
+
+  const languages = [
+    "INDIA",      
+    "भारत",       
+    "ভাৰত",       
+    "ଭାରତ",       
+    "భారత్",      
+    "ભારત",       
+    "ಭಾರತ",       
+    "भारत",       
+    "ভারত",       
+    "ਭਾਰਤ",       
+    "தமிழ்நாடு", 
+    "കേരളം",      
+    "ଓଡ଼ିଶା"       
+  ];
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    
-    if (code) {
-      handleGoogleSignIn();
-    }
-  }, [location]);
+    const interval = setInterval(() => {
+      setCurrentLanguageIndex((prevIndex) => (prevIndex + 1) % languages.length);
+    }, 2000); 
+
+    return () => clearInterval(interval);
+  }, [languages.length]);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -29,14 +42,18 @@ const LandingPage = () => {
     }
   };
 
+  const handleCloseSubscription = () => {
+    setShowSubscription(false);
+  };
+
   // Animation for floating code snippets
   const floatingCodeStyles = [
-    "animate-float opacity-50 absolute font-mono text-xs md:text-sm text-blue-300 whitespace-pre rounded-lg bg-opacity-10 bg-blue-900 p-3",
-    "animate-float-delay-1 opacity-50 absolute font-mono text-xs md:text-sm text-green-300 whitespace-pre rounded-lg bg-opacity-10 bg-green-900 p-3",
-    "animate-float-delay-2 opacity-50 absolute font-mono text-xs md:text-sm text-purple-300 whitespace-pre rounded-lg bg-opacity-10 bg-purple-900 p-3",
-    "animate-float-delay-3 opacity-50 absolute font-mono text-xs md:text-sm text-yellow-300 whitespace-pre rounded-lg bg-opacity-10 bg-yellow-900 p-3",
-    "animate-float-delay-4 opacity-50 absolute font-mono text-xs md:text-sm text-red-300 whitespace-pre rounded-lg bg-opacity-10 bg-red-900 p-3",
-    "animate-float-delay-5 opacity-50 absolute font-mono text-xs md:text-sm text-pink-300 whitespace-pre rounded-lg bg-opacity-10 bg-pink-900 p-3"
+    "animate-bounce opacity-50 absolute font-mono text-xs md:text-sm text-blue-300 whitespace-pre rounded-lg bg-opacity-10 bg-blue-900 p-3",
+    "animate-pulse opacity-50 absolute font-mono text-xs md:text-sm text-green-300 whitespace-pre rounded-lg bg-opacity-10 bg-green-900 p-3",
+    "animate-bounce opacity-50 absolute font-mono text-xs md:text-sm text-purple-300 whitespace-pre rounded-lg bg-opacity-10 bg-purple-900 p-3",
+    "animate-pulse opacity-50 absolute font-mono text-xs md:text-sm text-yellow-300 whitespace-pre rounded-lg bg-opacity-10 bg-yellow-900 p-3",
+    "animate-bounce opacity-50 absolute font-mono text-xs md:text-sm text-red-300 whitespace-pre rounded-lg bg-opacity-10 bg-red-900 p-3",
+    "animate-pulse opacity-50 absolute font-mono text-xs md:text-sm text-pink-300 whitespace-pre rounded-lg bg-opacity-10 bg-pink-900 p-3"
   ];
 
   return (
@@ -46,7 +63,22 @@ const LandingPage = () => {
       <div className="absolute -bottom-20 right-1/4 h-64 w-64 animate-pulse rounded-full bg-purple-500 opacity-10 blur-3xl"></div>
       
       <header className="relative mx-auto mb-12 flex max-w-6xl items-center justify-between">
-        <div className="text-xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">VIKSIT.AI</div>
+        <div className="relative group">
+          <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 rounded-lg blur opacity-30 group-hover:opacity-50 animate-pulse"></div>
+          <div className="relative text-xl font-bold tracking-tight">
+            <span 
+              className="bg-gradient-to-r from-blue-400 via-purple-500 to-cyan-400 bg-clip-text text-transparent font-black tracking-wider"
+              style={{
+                backgroundSize: '200% 200%',
+                animation: 'gradient-x 3s ease infinite, shimmer 2s linear infinite',
+                textShadow: '0 0 20px rgba(59, 130, 246, 0.5)',
+                filter: 'drop-shadow(0 0 10px rgba(147, 51, 234, 0.3))'
+              }}
+            >
+              VIKSIT.AI
+            </span>
+          </div>
+        </div>
         <button 
           onClick={handleGoogleSignIn}
           className="hidden rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-gray-200 transition-all hover:bg-gray-700 sm:block"
@@ -58,19 +90,30 @@ const LandingPage = () => {
       <div className="relative mx-auto max-w-4xl">
         <div className="mb-12 flex flex-col items-center text-center">
           <div className="relative mb-4">
-            <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl">
-              <span className="animate-typing overflow-hidden whitespace-nowrap border-r-4 border-blue-500 pr-1 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-600">
+            <div className="absolute -inset-2 bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 rounded-lg blur-lg opacity-20 animate-pulse"></div>
+            <h1 className="relative text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl">
+              <span 
+                className="bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-600 bg-clip-text text-transparent font-black tracking-wider"
+                style={{
+                  backgroundSize: '200% 100%',
+                  animation: 'shimmer 2s linear infinite, glow-pulse 3s ease-in-out infinite',
+                  filter: 'drop-shadow(0 4px 20px rgba(59, 130, 246, 0.4))',
+                  textShadow: '0 0 30px rgba(99, 102, 241, 0.6)'
+                }}
+              >
                 VIKSIT.AI
               </span>
             </h1>
           </div>
           
           <p className="mb-6 text-lg font-medium">
-            Built in <span className="inline-block animate-multilingual overflow-hidden">
-              <span className="inline-block animate-slide">INDIA</span>
-              <span className="inline-block">ভাৰত</span>
-              <span className="inline-block">ଭାରତ</span>
-              <span className="inline-block">భారత్</span>
+            Built in <span className="inline-block min-w-[80px] text-center">
+              <span 
+                key={currentLanguageIndex}
+                className="inline-block animate-pulse text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500 font-semibold"
+              >
+                {languages[currentLanguageIndex]}
+              </span>
             </span>, for the World!
           </p>
           
@@ -122,10 +165,10 @@ const LandingPage = () => {
       </div>
       
       {/* Floating code snippets */}
-      <div className={`${floatingCodeStyles[0]} top-1/4 -`}>
+      <div className={`${floatingCodeStyles[0]} top-1/4 left-10`}>
         {`function analyze(code) {\n  return AI.explain(code);\n}`}
       </div>
-      <div className={`${floatingCodeStyles[1]} top-1/3 -right-10 mr-30`}>
+      <div className={`${floatingCodeStyles[1]} top-1/3 right-10`}>
         {`import torch\nmodel = torch.load('nlp_model.pt')`}
       </div>
       <div className={`${floatingCodeStyles[2]} bottom-1/4 left-5`}>
@@ -134,14 +177,60 @@ const LandingPage = () => {
       <div className={`${floatingCodeStyles[3]} top-1/2 right-5`}>
         {`class CodeParser {\n  constructor() {\n    this.ast = null;\n  }\n}`}
       </div>
-      <div className={`${floatingCodeStyles[4]} bottom-1/7 -right-2 mr-10`}>
+      <div className={`${floatingCodeStyles[4]} bottom-1/7 right-12`}>
         {`SELECT repo_name, COUNT(*)\nFROM code_analysis\nGROUP BY repo_name;`}
       </div>
-      <div className={`${floatingCodeStyles[5]} bottom-10 left-200`}>
+      <div className={`${floatingCodeStyles[5]} bottom-10 left-1/3`}>
         {`async function fetchDocs() {\n  const response = await api.get('/docs');\n}`}
       </div>
+
+      {showSubscription && (
+        <SubscriptionPlans 
+          onGoogleSignIn={handleGoogleSignIn} 
+          onClose={handleCloseSubscription}
+        />
+      )}
       
-      {showSubscription && <SubscriptionPlans onGoogleSignIn={handleGoogleSignIn} />}
+      <style jsx>{`
+        @keyframes gradient-x {
+          0%, 100% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+        }
+        
+        @keyframes shimmer {
+          0% {
+            background-position: -200% center;
+          }
+          100% {
+            background-position: 200% center;
+          }
+        }
+        
+        @keyframes glow-pulse {
+          0%, 100% {
+            filter: drop-shadow(0 4px 20px rgba(59, 130, 246, 0.4)) brightness(1);
+          }
+          50% {
+            filter: drop-shadow(0 8px 40px rgba(99, 102, 241, 0.8)) brightness(1.2);
+          }
+        }
+        
+        @keyframes tilt {
+          0%, 50%, 100% {
+            transform: rotate(0deg);
+          }
+          25% {
+            transform: rotate(1deg);
+          }
+          75% {
+            transform: rotate(-1deg);
+          }
+        }
+      `}</style>
     </div>
   );
 };
