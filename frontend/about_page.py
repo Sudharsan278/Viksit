@@ -540,7 +540,7 @@ def about_page():
         "Frontend": ["Streamlit"],
         "AI Components": ["Groq API"],
         "External APIs": ["GitHub API", "Google Custom Search", "Sarvam API"]
-    }
+    } 
     
     # 2x2 grid 
     row1_col1, row1_col2 = st.columns(2)
