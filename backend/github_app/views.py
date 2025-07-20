@@ -516,4 +516,4 @@ def execute_code(request):
             return Response({"error": f"Failed to execute code: {str(e)}"}, status=500)
     
     except Exception as e:
-        return Response({"error": str(e)}, status=500)
+        return Response({"error": str(e)}, status=500) 
