@@ -122,7 +122,7 @@ def process_query_with_groq(text_query, image_data=None):
                 "content": message_content,
             }
         ],
-        model="meta-llama/llama-4-scout-17b-16e-instruct",
+        model="openai/gpt-oss-120b",
     )
     
     return chat_completion.choices[0].message.content
@@ -375,7 +375,7 @@ def generate_documentation(request):
     except Exception as e:
         return Response({"error": str(e)}, status=500)
 
-def get_groq_llm(model_name="llama3-8b-8192"):
+def get_groq_llm(model_name="openai/gpt-oss-120b"):
     """Initialize and return a Groq LLM instance"""
     api_key = os.environ.get('GROQ_API_KEY')
     
