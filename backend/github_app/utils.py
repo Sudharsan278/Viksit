@@ -9,7 +9,7 @@ def get_github_token():
     """Helper function to get GitHub token from environment variable"""
     return os.environ.get('GITHUB_TOKEN')
 
-def get_groq_llm(model_name="llama3-8b-8192"):
+def get_groq_llm(model_name="openai/gpt-oss-120b"):
     """Initialize and return a Groq LLM instance"""
     api_key = getattr(settings, 'GROQ_API_KEY', os.environ.get('GROQ_API_KEY'))
     
